@@ -3,8 +3,7 @@ import "./globals.css"
 
 export const metadata = {
   title: "Writecast - CLI Word Game",
-  description: "A terminal-style word guessing game on Farcaster",
-    generator: 'v0.app'
+  description: "A terminal-style word guessing game on Farcaster"
 }
 
 export default function RootLayout({

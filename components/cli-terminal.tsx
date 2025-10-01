@@ -77,7 +77,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "Type 'help' fo
   return (
     <div className="flex flex-col h-full" onClick={handleContainerClick}>
       {/* Messages area with inline input */}
-      <div className="flex-1 overflow-y-auto space-y-2 pr-2 pb-4">
+      <div className="flex-1 overflow-y-hidden space-y-2 pr-2 pb-4 scrollbar-hide">
         {messages.map((msg, i) => {
           const isStreaming = i === streamingIndex
           const shouldStream = msg.type !== "command" && isStreaming
