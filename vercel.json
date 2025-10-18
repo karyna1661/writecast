@@ -4,12 +4,6 @@
   "framework": "nextjs",
   "installCommand": "pnpm install",
   "devCommand": "pnpm dev",
-  "env": {
-    "NEXT_PUBLIC_SUPABASE_URL": "@next_public_supabase_url",
-    "NEXT_PUBLIC_SUPABASE_ANON_KEY": "@next_public_supabase_anon_key",
-    "NEXT_PUBLIC_FARCASTER_APP_ID": "@next_public_farcaster_app_id",
-    "NEXT_PUBLIC_APP_URL": "@next_public_app_url"
-  },
   "redirects": [
     {
       "source": "/play/:gameCode",
