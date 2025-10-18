@@ -6,10 +6,12 @@ import { TerminalHeader } from "@/components/terminal-header"
 import { CliTerminal, type CliMessage } from "@/components/cli-terminal"
 import { handleCommand } from "@/lib/command-handler"
 import { initialGameState, type GameState } from "@/lib/game-state"
+import { useFarcaster } from "@/contexts/FarcasterContext"
 
 export default function Home() {
   const [messages, setMessages] = useState<CliMessage[]>([])
   const [gameState, setGameState] = useState<GameState>(initialGameState)
+  const farcaster = useFarcaster()
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -23,6 +25,7 @@ Two game modes available:
   2. FRAME-THE-WORD: Write a piece, set a word that frames it
 
 Type 'help' to see all commands, or try:
+  • login - Sign in with Farcaster
   • create <word> - Start a fill-in-blank game
   • frame - Start a frame-the-word game
   • play <gameId> - Play a game (try: ABC123, XYZ789, FRAME1)`,
@@ -44,7 +47,7 @@ Type 'help' to see all commands, or try:
       return
     }
 
-    handleCommand(input, gameState, setGameState, addMessage)
+    handleCommand(input, gameState, setGameState, addMessage, farcaster)
   }
 
   return (

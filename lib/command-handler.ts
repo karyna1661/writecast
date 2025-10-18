@@ -12,12 +12,23 @@ import {
   getAuthorLeaderboard,
 } from "@/lib/actions/game-actions"
 import { joinWaitlist, getWaitlistCount } from "@/lib/actions/waitlist-actions"
+import { useFarcaster } from "@/contexts/FarcasterContext"
+import { terminalHaptics } from "@/lib/farcaster/haptics"
+
+// Helper function to get current user ID (authenticated or anonymous)
+function getCurrentUserId(farcasterContext?: any): string {
+  if (farcasterContext?.auth?.isAuthenticated && farcasterContext.auth.user) {
+    return `farcaster_${farcasterContext.auth.user.fid}`
+  }
+  return "anonymous_user"
+}
 
 export function handleCommand(
   input: string,
   gameState: GameState,
   setGameState: (state: GameState) => void,
   addMessage: (msg: CliMessage) => void,
+  farcasterContext?: any,
 ): void {
   const { command, args, rawArgs } = parseCommand(input)
 
@@ -76,7 +87,7 @@ export function handleCommand(
       break
 
     case "confirm":
-      handleConfirm(gameState, setGameState, addMessage)
+      handleConfirm(gameState, setGameState, addMessage, farcasterContext)
       break
 
     case "play":
@@ -84,7 +95,7 @@ export function handleCommand(
       break
 
     case "guess":
-      handleGuess(rawArgs, gameState, setGameState, addMessage)
+      handleGuess(rawArgs, gameState, setGameState, addMessage, farcasterContext)
       break
 
     case "reveal":
@@ -97,6 +108,49 @@ export function handleCommand(
 
     case "notify":
       handleNotify(rawArgs, addMessage)
+      break
+
+    // Farcaster Authentication Commands
+    case "login":
+      handleLogin(addMessage, farcasterContext)
+      break
+
+    case "auth":
+      handleAuth(addMessage, farcasterContext)
+      break
+
+    case "whoami":
+      handleWhoami(addMessage, farcasterContext)
+      break
+
+    case "logout":
+      handleLogout(addMessage, farcasterContext)
+      break
+
+    // Farcaster Social Commands
+    case "share":
+      handleShare(args, addMessage, farcasterContext)
+      break
+
+    case "invite":
+      handleInvite(rawArgs, addMessage, farcasterContext)
+      break
+
+    case "profile":
+      handleProfile(rawArgs, addMessage, farcasterContext)
+      break
+
+    // Farcaster Navigation Commands
+    case "open":
+      handleOpen(rawArgs, addMessage, farcasterContext)
+      break
+
+    case "home":
+      handleHome(addMessage, farcasterContext)
+      break
+
+    case "install":
+      handleInstall(addMessage, farcasterContext)
       break
 
     default:
@@ -363,6 +417,7 @@ async function handleConfirm(
   gameState: GameState,
   setGameState: (state: GameState) => void,
   addMessage: (msg: CliMessage) => void,
+  farcasterContext?: any,
 ) {
   if (!gameState.mode || !gameState.hiddenWord || !gameState.masterpiece) {
     addMessage({
@@ -375,8 +430,10 @@ async function handleConfirm(
 
   addMessage({ type: "output", content: "Creating game...", timestamp: Date.now() })
 
-  console.log("[v0] Getting or creating author...")
-  const { data: user, error: userError } = await getOrCreateUser("demo_author")
+  // Use hybrid authentication - authenticated users get Farcaster ID, anonymous get generic ID
+  const userId = getCurrentUserId(farcasterContext)
+  console.log("[v0] Getting or creating author...", { userId })
+  const { data: user, error: userError } = await getOrCreateUser(userId)
   console.log("[v0] User result:", { user, error: userError })
 
   if (userError || !user) {
@@ -418,6 +475,9 @@ async function handleConfirm(
     gameId: gameCode,
     step: "idle",
   })
+
+  // Trigger success haptic feedback for game creation
+  await terminalHaptics.gameCreated()
 
   const modeText = gameState.mode === "fill-blank" ? "Fill-in-Blank" : "Frame-the-Word"
 
@@ -527,6 +587,7 @@ async function handleGuess(
   gameState: GameState,
   setGameState: (state: GameState) => void,
   addMessage: (msg: CliMessage) => void,
+  farcasterContext?: any,
 ) {
   if (!gameState.currentGame) {
     addMessage({
@@ -548,8 +609,9 @@ async function handleGuess(
 
   addMessage({ type: "output", content: "Submitting guess...", timestamp: Date.now() })
 
-  // Get player and game
-  const { data: user, error: userError } = await getOrCreateUser("demo_player")
+  // Use hybrid authentication - authenticated users get Farcaster ID, anonymous get generic ID
+  const userId = getCurrentUserId(farcasterContext)
+  const { data: user, error: userError } = await getOrCreateUser(userId)
   if (userError || !user) {
     addMessage({
       type: "error",
@@ -591,6 +653,9 @@ async function handleGuess(
   }
 
   if (result.is_correct) {
+    // Trigger success haptic feedback
+    await terminalHaptics.correctGuess()
+
     const bonus = result.attempt_number === 1 ? " + FIRST TRY BONUS!" : ""
 
     addMessage({
@@ -618,6 +683,9 @@ ${"━".repeat(60)}`,
     })
   } else {
     if (result.session_status === "lost") {
+      // Trigger error haptic feedback for game lost
+      await terminalHaptics.gameLost()
+
       addMessage({
         type: "error",
         content: `
@@ -642,6 +710,9 @@ ${"━".repeat(60)}`,
         attempts: 0,
       })
     } else {
+      // Trigger error haptic feedback for wrong guess
+      await terminalHaptics.wrongGuess()
+
       setGameState({
         ...gameState,
         attempts: result.attempt_number,
@@ -755,6 +826,389 @@ ${authorsList}
 ${"━".repeat(60)}`
 
   addMessage({ type: "output", content: leaderboard, timestamp: Date.now() })
+}
+
+// ============================================================================
+// FARCASTER COMMAND HANDLERS
+// ============================================================================
+
+async function handleLogin(addMessage: (msg: CliMessage) => void, farcasterContext?: any) {
+  if (!farcasterContext) {
+    addMessage({
+      type: "error",
+      content: "Farcaster SDK not available. Please ensure you're running in a Farcaster environment.",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  try {
+    addMessage({
+      type: "output",
+      content: "[Farcaster SDK] Initializing authentication...",
+      timestamp: Date.now(),
+    })
+
+    await farcasterContext.login()
+
+    // Trigger success haptic feedback for login
+    await terminalHaptics.loginSuccess()
+
+    addMessage({
+      type: "success",
+      content: `✓ Logged in as @${farcasterContext.auth.user?.username || "user"}`,
+      timestamp: Date.now(),
+    })
+  } catch (error) {
+    addMessage({
+      type: "error",
+      content: `Authentication failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      timestamp: Date.now(),
+    })
+  }
+}
+
+async function handleAuth(addMessage: (msg: CliMessage) => void, farcasterContext?: any) {
+  if (!farcasterContext) {
+    addMessage({
+      type: "error",
+      content: "Farcaster SDK not available.",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  try {
+    const token = await farcasterContext.getToken()
+    
+    if (token) {
+      addMessage({
+        type: "success",
+        content: `Authentication token retrieved:
+${token.substring(0, 50)}...`,
+        timestamp: Date.now(),
+      })
+    } else {
+      addMessage({
+        type: "error",
+        content: "No authentication token found. Please run 'login' first.",
+        timestamp: Date.now(),
+      })
+    }
+  } catch (error) {
+    addMessage({
+      type: "error",
+      content: `Failed to get token: ${error instanceof Error ? error.message : "Unknown error"}`,
+      timestamp: Date.now(),
+    })
+  }
+}
+
+function handleWhoami(addMessage: (msg: CliMessage) => void, farcasterContext?: any) {
+  if (!farcasterContext) {
+    addMessage({
+      type: "error",
+      content: "Farcaster SDK not available.",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  if (farcasterContext.auth.isAuthenticated && farcasterContext.auth.user) {
+    const user = farcasterContext.auth.user
+    addMessage({
+      type: "output",
+      content: `Current user:
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Username: @${user.username}
+Display Name: ${user.displayName}
+FID: ${user.fid}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      timestamp: Date.now(),
+    })
+  } else {
+    addMessage({
+      type: "error",
+      content: "Not logged in. Run 'login' to authenticate.",
+      timestamp: Date.now(),
+    })
+  }
+}
+
+function handleLogout(addMessage: (msg: CliMessage) => void, farcasterContext?: any) {
+  if (!farcasterContext) {
+    addMessage({
+      type: "error",
+      content: "Farcaster SDK not available.",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  farcasterContext.logout()
+  addMessage({
+    type: "success",
+    content: "✓ Logged out successfully",
+    timestamp: Date.now(),
+  })
+}
+
+async function handleShare(args: string[], addMessage: (msg: CliMessage) => void, farcasterContext?: any) {
+  if (!args[0]) {
+    addMessage({
+      type: "error",
+      content: "Usage: share <gameId>\nExample: share ABC123",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  if (!farcasterContext) {
+    addMessage({
+      type: "error",
+      content: "Farcaster SDK not available.",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  const gameId = args[0].toUpperCase()
+
+  try {
+    addMessage({
+      type: "output",
+      content: "[Preparing cast...]",
+      timestamp: Date.now(),
+    })
+
+    await farcasterContext.shareGame(gameId, "created")
+
+    // Trigger success haptic feedback for share
+    await terminalHaptics.shareSuccess()
+
+    addMessage({
+      type: "success",
+      content: `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SHARE TO FARCASTER
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+✓ Cast composed successfully!
+✓ Share recorded
+
+Your game ${gameId} is now live on Farcaster!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      timestamp: Date.now(),
+    })
+  } catch (error) {
+    addMessage({
+      type: "error",
+      content: `Failed to share game: ${error instanceof Error ? error.message : "Unknown error"}`,
+      timestamp: Date.now(),
+    })
+  }
+}
+
+async function handleInvite(rawArgs: string, addMessage: (msg: CliMessage) => void, farcasterContext?: any) {
+  if (!rawArgs) {
+    addMessage({
+      type: "error",
+      content: "Usage: invite @username\nExample: invite @friend",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  if (!farcasterContext) {
+    addMessage({
+      type: "error",
+      content: "Farcaster SDK not available.",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  const username = rawArgs.trim()
+
+  try {
+    addMessage({
+      type: "output",
+      content: `[Opening mini app for @${username}...]`,
+      timestamp: Date.now(),
+    })
+
+    await farcasterContext.inviteUser(username)
+
+    addMessage({
+      type: "success",
+      content: `✓ Mini app opened for @${username}`,
+      timestamp: Date.now(),
+    })
+  } catch (error) {
+    addMessage({
+      type: "error",
+      content: `Failed to invite user: ${error instanceof Error ? error.message : "Unknown error"}`,
+      timestamp: Date.now(),
+    })
+  }
+}
+
+async function handleProfile(rawArgs: string, addMessage: (msg: CliMessage) => void, farcasterContext?: any) {
+  if (!rawArgs) {
+    addMessage({
+      type: "error",
+      content: "Usage: profile @username\nExample: profile @friend",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  if (!farcasterContext) {
+    addMessage({
+      type: "error",
+      content: "Farcaster SDK not available.",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  const username = rawArgs.trim()
+
+  try {
+    addMessage({
+      type: "output",
+      content: `[Opening profile for @${username}...]`,
+      timestamp: Date.now(),
+    })
+
+    await farcasterContext.viewProfile(username)
+
+    addMessage({
+      type: "success",
+      content: `✓ Profile opened for @${username}`,
+      timestamp: Date.now(),
+    })
+  } catch (error) {
+    addMessage({
+      type: "error",
+      content: `Failed to view profile: ${error instanceof Error ? error.message : "Unknown error"}`,
+      timestamp: Date.now(),
+    })
+  }
+}
+
+async function handleOpen(rawArgs: string, addMessage: (msg: CliMessage) => void, farcasterContext?: any) {
+  if (!rawArgs) {
+    addMessage({
+      type: "error",
+      content: "Usage: open <url>\nExample: open https://example.com",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  if (!farcasterContext) {
+    addMessage({
+      type: "error",
+      content: "Farcaster SDK not available.",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  const url = rawArgs.trim()
+
+  try {
+    addMessage({
+      type: "output",
+      content: `[Opening ${url}...]`,
+      timestamp: Date.now(),
+    })
+
+    await farcasterContext.viewProfile(url) // Using viewProfile as proxy for openUrl
+
+    addMessage({
+      type: "success",
+      content: `✓ URL opened: ${url}`,
+      timestamp: Date.now(),
+    })
+  } catch (error) {
+    addMessage({
+      type: "error",
+      content: `Failed to open URL: ${error instanceof Error ? error.message : "Unknown error"}`,
+      timestamp: Date.now(),
+    })
+  }
+}
+
+async function handleHome(addMessage: (msg: CliMessage) => void, farcasterContext?: any) {
+  if (!farcasterContext) {
+    addMessage({
+      type: "error",
+      content: "Farcaster SDK not available.",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  try {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://writecast.vercel.app"
+    
+    addMessage({
+      type: "output",
+      content: `[Opening Writecast mini app...]`,
+      timestamp: Date.now(),
+    })
+
+    await farcasterContext.inviteUser(appUrl)
+
+    addMessage({
+      type: "success",
+      content: `✓ Writecast mini app opened`,
+      timestamp: Date.now(),
+    })
+  } catch (error) {
+    addMessage({
+      type: "error",
+      content: `Failed to open mini app: ${error instanceof Error ? error.message : "Unknown error"}`,
+      timestamp: Date.now(),
+    })
+  }
+}
+
+async function handleInstall(addMessage: (msg: CliMessage) => void, farcasterContext?: any) {
+  if (!farcasterContext) {
+    addMessage({
+      type: "error",
+      content: "Farcaster SDK not available.",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  try {
+    addMessage({
+      type: "output",
+      content: `[Adding Writecast to mini apps...]`,
+      timestamp: Date.now(),
+    })
+
+    await farcasterContext.setPrimaryButton({
+      text: "Add Writecast",
+      action: () => {},
+    })
+
+    addMessage({
+      type: "success",
+      content: `✓ Writecast added to mini apps`,
+      timestamp: Date.now(),
+    })
+  } catch (error) {
+    addMessage({
+      type: "error",
+      content: `Failed to add mini app: ${error instanceof Error ? error.message : "Unknown error"}`,
+      timestamp: Date.now(),
+    })
+  }
 }
 
 async function handleNotify(rawArgs: string, addMessage: (msg: CliMessage) => void) {

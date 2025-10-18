@@ -1,0 +1,240 @@
+"use client"
+
+import React, { createContext, useContext, useEffect, useState } from "react"
+import { farcasterSDK, isFarcasterAvailable } from "@/lib/farcaster/sdk-client"
+import type { AuthState, FarcasterUser } from "@/lib/farcaster/types"
+
+interface FarcasterContextType {
+  auth: AuthState
+  login: () => Promise<void>
+  logout: () => void
+  getToken: () => Promise<string | null>
+  shareGame: (gameCode: string, template: "created" | "won" | "invite") => Promise<void>
+  inviteUser: (username: string) => Promise<void>
+  viewProfile: (username: string) => Promise<void>
+  hapticFeedback: {
+    success: () => Promise<void>
+    error: () => Promise<void>
+    warning: () => Promise<void>
+    light: () => Promise<void>
+    medium: () => Promise<void>
+    heavy: () => Promise<void>
+  }
+  isAvailable: boolean
+}
+
+const FarcasterContext = createContext<FarcasterContextType | null>(null)
+
+export function FarcasterProvider({ children }: { children: React.ReactNode }) {
+  const [auth, setAuth] = useState<AuthState>({
+    isAuthenticated: false,
+    user: null,
+    token: null,
+    isLoading: true,
+  })
+
+  const [isAvailable, setIsAvailable] = useState(false)
+
+  useEffect(() => {
+    const initSDK = async () => {
+      try {
+        setIsAvailable(isFarcasterAvailable())
+        
+        // Don't try to get token on initialization - only when explicitly needed
+        setAuth(prev => ({ ...prev, isLoading: false }))
+      } catch (error) {
+        console.error("Failed to initialize Farcaster SDK:", error)
+        setAuth(prev => ({ ...prev, isLoading: false }))
+      }
+    }
+
+    initSDK()
+  }, [])
+
+  const login = async () => {
+    try {
+      setAuth(prev => ({ ...prev, isLoading: true }))
+      
+      if (!isFarcasterAvailable()) {
+        throw new Error("Farcaster SDK not available")
+      }
+
+      await farcasterSDK.actions.signIn()
+      
+      // Get token after sign in
+      const tokenResult = await farcasterSDK.quickAuth.getToken()
+      const token = tokenResult?.token || null
+      
+      if (token) {
+        // TODO: Decode token to get user info
+        const mockUser: FarcasterUser = {
+          fid: 12345,
+          username: "writecast_user",
+          displayName: "Writecast User",
+        }
+        
+        setAuth({
+          isAuthenticated: true,
+          user: mockUser,
+          token,
+          isLoading: false,
+        })
+      } else {
+        setAuth(prev => ({ ...prev, isLoading: false }))
+      }
+    } catch (error) {
+      console.error("Login failed:", error)
+      setAuth(prev => ({ ...prev, isLoading: false }))
+    }
+  }
+
+  const logout = () => {
+    setAuth({
+      isAuthenticated: false,
+      user: null,
+      token: null,
+      isLoading: false,
+    })
+  }
+
+  const getToken = async (): Promise<string | null> => {
+    try {
+      if (!isFarcasterAvailable()) return null
+      
+      const result = await farcasterSDK.quickAuth.getToken()
+      return result?.token || null
+    } catch (error) {
+      console.error("Failed to get token:", error)
+      return null
+    }
+  }
+
+  const shareGame = async (gameCode: string, template: "created" | "won" | "invite") => {
+    try {
+      if (!isFarcasterAvailable()) {
+        throw new Error("Farcaster SDK not available")
+      }
+
+      let text = ""
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://writecast.vercel.app"
+      
+      switch (template) {
+        case "created":
+          text = `I just created a word game on Writecast! 🎮\n\nCan you guess my hidden word?\nPlay now: ${baseUrl}/play/${gameCode}\n\nThink you can beat it in 3 tries? 🤔`
+          break
+        case "won":
+          text = `I just won a word game on Writecast! 🎉\n\nGame: ${gameCode}\nPlay it yourself: ${baseUrl}/play/${gameCode}\n\nCan you beat my score? 🏆`
+          break
+        case "invite":
+          text = `Join me in this word game on Writecast! 🎮\n\nGame: ${gameCode}\nPlay now: ${baseUrl}/play/${gameCode}\n\nLet's see who's smarter! 🧠`
+          break
+      }
+
+      await farcasterSDK.actions.composeCast(text)
+    } catch (error) {
+      console.error("Failed to share game:", error)
+      throw error
+    }
+  }
+
+  const inviteUser = async (username: string) => {
+    try {
+      if (!isFarcasterAvailable()) {
+        throw new Error("Farcaster SDK not available")
+      }
+
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://writecast.vercel.app"
+      await farcasterSDK.actions.openMiniApp(appUrl)
+    } catch (error) {
+      console.error("Failed to invite user:", error)
+      throw error
+    }
+  }
+
+  const viewProfile = async (username: string) => {
+    try {
+      if (!isFarcasterAvailable()) {
+        throw new Error("Farcaster SDK not available")
+      }
+
+      await farcasterSDK.actions.viewProfile(username)
+    } catch (error) {
+      console.error("Failed to view profile:", error)
+      throw error
+    }
+  }
+
+
+  const hapticFeedback = {
+    success: async () => {
+      try {
+        if (!isFarcasterAvailable()) return
+        await farcasterSDK.haptics.notification("success")
+      } catch (error) {
+        console.error("Haptic feedback failed:", error)
+      }
+    },
+    error: async () => {
+      try {
+        if (!isFarcasterAvailable()) return
+        await farcasterSDK.haptics.notification("error")
+      } catch (error) {
+        console.error("Haptic feedback failed:", error)
+      }
+    },
+    warning: async () => {
+      try {
+        if (!isFarcasterAvailable()) return
+        await farcasterSDK.haptics.notification("warning")
+      } catch (error) {
+        console.error("Haptic feedback failed:", error)
+      }
+    },
+    light: async () => {
+      try {
+        if (!isFarcasterAvailable()) return
+        await farcasterSDK.haptics.impact("light")
+      } catch (error) {
+        console.error("Haptic feedback failed:", error)
+      }
+    },
+    medium: async () => {
+      try {
+        if (!isFarcasterAvailable()) return
+        await farcasterSDK.haptics.impact("medium")
+      } catch (error) {
+        console.error("Haptic feedback failed:", error)
+      }
+    },
+    heavy: async () => {
+      try {
+        if (!isFarcasterAvailable()) return
+        await farcasterSDK.haptics.impact("heavy")
+      } catch (error) {
+        console.error("Haptic feedback failed:", error)
+      }
+    },
+  }
+
+  const value: FarcasterContextType = {
+    auth,
+    login,
+    logout,
+    getToken,
+    shareGame,
+    inviteUser,
+    viewProfile,
+    hapticFeedback,
+    isAvailable,
+  }
+
+  return <FarcasterContext.Provider value={value}>{children}</FarcasterContext.Provider>
+}
+
+export function useFarcaster() {
+  const context = useContext(FarcasterContext)
+  if (!context) {
+    throw new Error("useFarcaster must be used within a FarcasterProvider")
+  }
+  return context
+}

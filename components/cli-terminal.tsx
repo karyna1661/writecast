@@ -2,8 +2,9 @@
 
 import type React from "react"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { TypewriterText } from "./typewriter-text"
+import { TerminalPrompt } from "./terminal-prompt"
 
 interface CliMessage {
   type: "command" | "output" | "error" | "success"
@@ -21,16 +22,42 @@ export function CliTerminal({ onCommand, messages, placeholder = "Type 'help' fo
   const [input, setInput] = useState("")
   const [streamingIndex, setStreamingIndex] = useState(-1)
   const [isInputEnabled, setIsInputEnabled] = useState(false)
+  const [isUserScrolling, setIsUserScrolling] = useState(false)
+  const [typewriterProgress, setTypewriterProgress] = useState<Record<number, number>>({})
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }
+  const scrollToBottom = useCallback((behavior: ScrollBehavior = "smooth") => {
+    if (!isUserScrolling) {
+      messagesEndRef.current?.scrollIntoView({ behavior })
+    }
+  }, [isUserScrolling])
 
+  // Auto-scroll on new messages AND during typewriter progress (smooth following)
   useEffect(() => {
-    scrollToBottom()
-  }, [messages, streamingIndex])
+    scrollToBottom("auto")
+  }, [messages, typewriterProgress, scrollToBottom])
+
+  // Detect if user is manually scrolling
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10 // 10px threshold
+      
+      if (isAtBottom) {
+        setIsUserScrolling(false)
+      } else {
+        setIsUserScrolling(true)
+      }
+    }
+
+    container.addEventListener('scroll', handleScroll)
+    return () => container.removeEventListener('scroll', handleScroll)
+  }, [])
 
   useEffect(() => {
     if (messages.length > 0) {
@@ -64,6 +91,8 @@ export function CliTerminal({ onCommand, messages, placeholder = "Type 'help' fo
     e.preventDefault()
     if (!input.trim() || !isInputEnabled) return
 
+    // Reset scroll state when user submits command
+    setIsUserScrolling(false)
     onCommand(input.trim())
     setInput("")
   }
@@ -76,8 +105,11 @@ export function CliTerminal({ onCommand, messages, placeholder = "Type 'help' fo
 
   return (
     <div className="flex flex-col h-full" onClick={handleContainerClick}>
-      {/* Messages area with inline input */}
-      <div className="flex-1 overflow-y-hidden space-y-2 pr-2 pb-4 scrollbar-hide">
+      {/* Messages area with scroll detection */}
+      <div 
+        ref={containerRef}
+        className="flex-1 overflow-y-auto space-y-2 pr-2 pb-4 scrollbar-hide"
+      >
         {messages.map((msg, i) => {
           const isStreaming = i === streamingIndex
           const shouldStream = msg.type !== "command" && isStreaming
@@ -85,12 +117,9 @@ export function CliTerminal({ onCommand, messages, placeholder = "Type 'help' fo
           return (
             <div key={i} className="space-y-1">
               {msg.type === "command" ? (
-                <div className="flex items-start gap-1 sm:gap-2 flex-wrap">
-                  <span className="text-terminal-yellow font-bold text-xs sm:text-sm">guest@writecast</span>
-                  <span className="text-terminal-text text-xs sm:text-sm">~</span>
-                  <span className="text-terminal-green font-bold text-xs sm:text-sm">$</span>
+                <TerminalPrompt>
                   <span className="text-terminal-text text-xs sm:text-sm break-all">{msg.content}</span>
-                </div>
+                </TerminalPrompt>
               ) : msg.type === "error" ? (
                 <div className="pl-4 sm:pl-8 text-terminal-red text-xs sm:text-sm">
                   {shouldStream ? (
@@ -99,6 +128,9 @@ export function CliTerminal({ onCommand, messages, placeholder = "Type 'help' fo
                       <TypewriterText
                         text={msg.content}
                         speed={15}
+                        onProgress={(index) => {
+                          setTypewriterProgress(prev => ({ ...prev, [i]: index }))
+                        }}
                         onComplete={handleStreamComplete}
                         className="text-terminal-red"
                       />
@@ -115,6 +147,9 @@ export function CliTerminal({ onCommand, messages, placeholder = "Type 'help' fo
                     <TypewriterText
                       text={msg.content}
                       speed={15}
+                      onProgress={(index) => {
+                        setTypewriterProgress(prev => ({ ...prev, [i]: index }))
+                      }}
                       onComplete={handleStreamComplete}
                       className="text-terminal-green"
                     />
@@ -125,7 +160,14 @@ export function CliTerminal({ onCommand, messages, placeholder = "Type 'help' fo
               ) : (
                 <div className="pl-4 sm:pl-8 text-terminal-text text-xs sm:text-sm whitespace-pre-wrap break-words">
                   {shouldStream ? (
-                    <TypewriterText text={msg.content} speed={15} onComplete={handleStreamComplete} />
+                    <TypewriterText 
+                      text={msg.content} 
+                      speed={15} 
+                      onProgress={(index) => {
+                        setTypewriterProgress(prev => ({ ...prev, [i]: index }))
+                      }}
+                      onComplete={handleStreamComplete} 
+                    />
                   ) : (
                     msg.content
                   )}
@@ -137,19 +179,18 @@ export function CliTerminal({ onCommand, messages, placeholder = "Type 'help' fo
 
         {isInputEnabled && (
           <form onSubmit={handleSubmit} className="flex items-start gap-1 sm:gap-2 flex-wrap">
-            <span className="text-terminal-yellow font-bold text-xs sm:text-sm">guest@writecast</span>
-            <span className="text-terminal-text text-xs sm:text-sm">~</span>
-            <span className="text-terminal-green font-bold text-xs sm:text-sm">$</span>
-            <input
-              ref={inputRef}
-              type="text"
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-terminal-text font-mono caret-terminal-cyan text-xs sm:text-sm"
-              placeholder={placeholder}
-              autoComplete="off"
-              spellCheck={false}
-            />
+            <TerminalPrompt>
+              <input
+                ref={inputRef}
+                type="text"
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-terminal-text font-mono caret-terminal-cyan text-xs sm:text-sm"
+                placeholder={placeholder}
+                autoComplete="off"
+                spellCheck={false}
+              />
+            </TerminalPrompt>
           </form>
         )}
 

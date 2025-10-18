@@ -36,19 +36,36 @@ GAMEPLAY:
   guess <word>            Make a guess in the current game
   reveal <gameId>         View results and stats for a game
 
+SOCIAL & SHARING:
+  share <gameId>          Share game to Farcaster
+  invite @username        Invite user to mini app
+  profile @user           View Farcaster profile
+
+AUTHENTICATION:
+  login                   Sign in with Farcaster
+  auth                    Get authentication token
+  whoami                  Show current user
+  logout                  Sign out
+
 NAVIGATION:
+  open <url>              Open external URL
+  home                    Return to main app
+  install                 Add Writecast to mini apps
   menu                    Return to main menu
+
+UTILITIES:
   leaderboard             View top players and authors
   notify                  Join waitlist for Farcaster mini app launch
   help                    Show this help message
   clear                   Clear terminal history
 
 EXAMPLES:
-  $ games
-  $ play ABC123
-  $ guess innovation
+  $ login
   $ create wisdom
   $ write True wisdom comes from experience
+  $ share ABC123
+  $ play ABC123
+  $ guess innovation
   $ notify user@email.com
   $ notify @farcasteruser
 `
