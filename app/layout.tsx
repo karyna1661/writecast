@@ -47,13 +47,11 @@ export const metadata = {
   other: {
     "farcaster:app": "writecast",
     "farcaster:app_url": "https://writecast.vercel.app",
-    "fc:miniapp": "vNext",
-    "fc:miniapp:version": "1.0",
-    "fc:miniapp:name": "Writecast",
-    "fc:miniapp:image": "https://writecast.vercel.app/og-image.png",
-    "fc:miniapp:button:1": "Play Now",
-    "fc:miniapp:button:1:action": "link",
-    "fc:miniapp:button:1:target": "https://writecast.vercel.app",
+    "fc:frame": "vNext",
+    "fc:frame:image": "https://writecast.vercel.app/og-image.png",
+    "fc:frame:button:1": "Play Now",
+    "fc:frame:button:1:action": "link",
+    "fc:frame:button:1:target": "https://writecast.vercel.app",
   },
 }
 

@@ -22,13 +22,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           images: ["https://writecast.vercel.app/og-image.png"],
         },
         other: {
-          "fc:miniapp": "vNext",
-          "fc:miniapp:version": "1.0",
-          "fc:miniapp:name": "Writecast",
-          "fc:miniapp:image": "https://writecast.vercel.app/og-image.png",
-          "fc:miniapp:button:1": "Play Game",
-          "fc:miniapp:button:1:action": "link",
-          "fc:miniapp:button:1:target": `https://writecast.vercel.app/play/${gameCode}`,
+          "fc:frame": "vNext",
+          "fc:frame:image": "https://writecast.vercel.app/og-image.png",
+          "fc:frame:button:1": "Play Game",
+          "fc:frame:button:1:action": "link",
+          "fc:frame:button:1:target": `https://writecast.vercel.app/play/${gameCode}`,
         },
       }
     }
@@ -46,13 +44,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         url: `https://writecast.vercel.app/play/${gameCode}`,
       },
       other: {
-        "fc:miniapp": "vNext",
-        "fc:miniapp:version": "1.0",
-        "fc:miniapp:name": "Writecast",
-        "fc:miniapp:image": "https://writecast.vercel.app/og-image.png",
-        "fc:miniapp:button:1": "Play Game",
-        "fc:miniapp:button:1:action": "link",
-        "fc:miniapp:button:1:target": `https://writecast.vercel.app/play/${gameCode}`,
+        "fc:frame": "vNext",
+        "fc:frame:image": "https://writecast.vercel.app/og-image.png",
+        "fc:frame:button:1": "Play Game",
+        "fc:frame:button:1:action": "link",
+        "fc:frame:button:1:target": `https://writecast.vercel.app/play/${gameCode}`,
       },
     }
   } catch (error) {
@@ -65,13 +61,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         images: ["https://writecast.vercel.app/og-image.png"],
       },
       other: {
-        "fc:miniapp": "vNext",
-        "fc:miniapp:version": "1.0",
-        "fc:miniapp:name": "Writecast",
-        "fc:miniapp:image": "https://writecast.vercel.app/og-image.png",
-        "fc:miniapp:button:1": "Play Game",
-        "fc:miniapp:button:1:action": "link",
-        "fc:miniapp:button:1:target": `https://writecast.vercel.app/play/${gameCode}`,
+        "fc:frame": "vNext",
+        "fc:frame:image": "https://writecast.vercel.app/og-image.png",
+        "fc:frame:button:1": "Play Game",
+        "fc:frame:button:1:action": "link",
+        "fc:frame:button:1:target": `https://writecast.vercel.app/play/${gameCode}`,
       },
     }
   }

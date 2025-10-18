@@ -8,26 +8,6 @@ import { handleCommand } from "@/lib/command-handler"
 import { initialGameState, type GameState } from "@/lib/game-state"
 import { useFarcaster } from "@/contexts/FarcasterContext"
 
-export const metadata = {
-  title: "Writecast - CLI Word Game",
-  description: "A terminal-style word game on Farcaster. Create and play word games through CLI commands.",
-  openGraph: {
-    title: "Writecast - CLI Word Game",
-    description: "A terminal-style word game on Farcaster. Create and play word games through CLI commands.",
-    images: ["https://writecast.vercel.app/og-image.png"],
-    url: "https://writecast.vercel.app",
-  },
-  other: {
-    "fc:miniapp": "vNext",
-    "fc:miniapp:version": "1.0",
-    "fc:miniapp:name": "Writecast",
-    "fc:miniapp:image": "https://writecast.vercel.app/og-image.png",
-    "fc:miniapp:button:1": "Play Now",
-    "fc:miniapp:button:1:action": "link",
-    "fc:miniapp:button:1:target": "https://writecast.vercel.app",
-  },
-}
-
 export default function Home() {
   const [messages, setMessages] = useState<CliMessage[]>([])
   const [gameState, setGameState] = useState<GameState>(initialGameState)
