@@ -1,0 +1,24 @@
+{
+  "version": "1.0",
+  "name": "Writecast",
+  "description": "A terminal-style word game on Farcaster. Create and play word games through CLI commands.",
+  "icon": "https://writecast.vercel.app/icon-512.png",
+  "home": "https://writecast.vercel.app",
+  "launch_url": "https://writecast.vercel.app",
+  "webhook_url": "https://writecast.vercel.app/api/webhook",
+  "account": {
+    "type": "farcaster",
+    "username": "writecast"
+  },
+  "verification": {
+    "domain": "writecast.vercel.app",
+    "signature": "PLACEHOLDER_SIGNATURE_TO_BE_UPDATED_IN_PRODUCTION"
+  },
+  "permissions": [
+    "notifications",
+    "social_sharing",
+    "user_profile"
+  ],
+  "categories": ["games", "entertainment"],
+  "tags": ["word-game", "terminal", "cli", "farcaster", "mini-app"]
+}

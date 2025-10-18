@@ -1,0 +1,59 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="1200" height="630" fill="#0a1628"/>
+  
+  <!-- Terminal border -->
+  <rect x="50" y="50" width="1100" height="530" fill="none" stroke="#1e40af" stroke-width="3"/>
+  
+  <!-- Terminal header dots -->
+  <circle cx="80" cy="80" r="8" fill="#ef4444"/>
+  <circle cx="110" cy="80" r="8" fill="#fbbf24"/>
+  <circle cx="140" cy="80" r="8" fill="#10b981"/>
+  
+  <!-- Terminal title -->
+  <text x="170" y="90" font-family="monospace" font-size="16" fill="#9ca3af">writecast.terminal</text>
+  
+  <!-- Main ASCII Art -->
+  <text x="600" y="200" font-family="monospace" font-size="32" fill="#06b6d4" text-anchor="middle">
+    ██╗    ██╗██████╗ ██╗████████╗███████╗ ██████╗ █████╗ ███████╗████████╗
+  </text>
+  <text x="600" y="230" font-family="monospace" font-size="32" fill="#06b6d4" text-anchor="middle">
+    ██║    ██║██╔══██╗██║╚══██╔══╝██╔════╝██╔════╝██╔══██╗██╔════╝╚══██╔══╝
+  </text>
+  <text x="600" y="260" font-family="monospace" font-size="32" fill="#06b6d4" text-anchor="middle">
+    ██║ █╗ ██║██████╔╝██║   ██║   █████╗  ██║     ███████║███████╗   ██║   
+  </text>
+  <text x="600" y="290" font-family="monospace" font-size="32" fill="#06b6d4" text-anchor="middle">
+    ██║███╗██║██╔══██╗██║   ██║   ██╔══╝  ██║     ██╔══██║╚════██║   ██║   
+  </text>
+  <text x="600" y="320" font-family="monospace" font-size="32" fill="#06b6d4" text-anchor="middle">
+    ╚███╔███╔╝██║  ██║██║   ██║   ███████╗╚██████╗██║  ██║███████║   ██║   
+  </text>
+  <text x="600" y="350" font-family="monospace" font-size="32" fill="#06b6d4" text-anchor="middle">
+     ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝   ╚═╝   ╚══════╝ ╚═════╝╚═╝  ╚═╝╚══════╝   ╚═╝   
+  </text>
+  
+  <!-- Tagline -->
+  <text x="600" y="420" font-family="monospace" font-size="24" fill="#10b981" text-anchor="middle">
+    CLI Word Game on Farcaster
+  </text>
+  
+  <!-- Version and status -->
+  <text x="600" y="460" font-family="monospace" font-size="18" fill="#fbbf24" text-anchor="middle">
+    v1.0.0 | Farcaster Mini App | Type 'help' for commands
+  </text>
+  
+  <!-- Terminal prompt example -->
+  <text x="100" y="520" font-family="monospace" font-size="16" fill="#fbbf24">
+    guest@writecast ~ $ play ABC123
+  </text>
+  
+  <!-- Scanline effect -->
+  <defs>
+    <pattern id="scanlines" patternUnits="userSpaceOnUse" width="100%" height="4">
+      <rect width="100%" height="2" fill="rgba(0,0,0,0.1)"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="url(#scanlines)"/>
+</svg>
+

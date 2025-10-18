@@ -5,21 +5,55 @@ import { FarcasterProvider } from "@/contexts/FarcasterContext"
 export const metadata = {
   title: "Writecast - CLI Word Game",
   description: "A terminal-style word guessing game on Farcaster",
+  manifest: "/manifest.json",
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
+  themeColor: "#1e3a8a",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Writecast",
+  },
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/icon-192.png",
+    shortcut: "/icon-192.png",
+  },
   openGraph: {
     title: "Writecast - CLI Word Game",
     description: "A terminal-style word guessing game on Farcaster",
     type: "website",
     url: "https://writecast.vercel.app",
     siteName: "Writecast",
+    images: [
+      {
+        url: "https://writecast.vercel.app/og-image.png",
+        width: 1200,
+        height: 630,
+        alt: "Writecast - CLI Word Game",
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Writecast - CLI Word Game",
     description: "A terminal-style word guessing game on Farcaster",
+    images: ["https://writecast.vercel.app/og-image.png"],
   },
   other: {
     "farcaster:app": "writecast",
     "farcaster:app_url": "https://writecast.vercel.app",
+    "fc:miniapp": "vNext",
+    "fc:miniapp:version": "1.0",
+    "fc:miniapp:name": "Writecast",
+    "fc:miniapp:image": "https://writecast.vercel.app/og-image.png",
+    "fc:miniapp:button:1": "Play Now",
+    "fc:miniapp:button:1:action": "link",
+    "fc:miniapp:button:1:target": "https://writecast.vercel.app",
   },
 }
 

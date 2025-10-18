@@ -46,7 +46,8 @@ export function CliTerminal({ onCommand, messages, placeholder = "Type 'help' fo
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = container
-      const isAtBottom = scrollTop + clientHeight >= scrollHeight - 10 // 10px threshold
+      const threshold = window.innerWidth < 640 ? 20 : 10 // Larger threshold on mobile
+      const isAtBottom = scrollTop + clientHeight >= scrollHeight - threshold
       
       if (isAtBottom) {
         setIsUserScrolling(false)
@@ -108,7 +109,8 @@ export function CliTerminal({ onCommand, messages, placeholder = "Type 'help' fo
       {/* Messages area with scroll detection */}
       <div 
         ref={containerRef}
-        className="flex-1 overflow-y-auto space-y-2 pr-2 pb-4 scrollbar-hide"
+        className="flex-1 overflow-y-auto space-y-1 xs:space-y-2 pr-1 xs:pr-2 pb-2 xs:pb-4 scrollbar-hide"
+        style={{ WebkitOverflowScrolling: 'touch' }}
       >
         {messages.map((msg, i) => {
           const isStreaming = i === streamingIndex
@@ -121,7 +123,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "Type 'help' fo
                   <span className="text-terminal-text text-xs sm:text-sm break-all">{msg.content}</span>
                 </TerminalPrompt>
               ) : msg.type === "error" ? (
-                <div className="pl-4 sm:pl-8 text-terminal-red text-xs sm:text-sm">
+                <div className="pl-2 xs:pl-4 sm:pl-8 text-terminal-red text-[10px] xs:text-xs sm:text-sm">
                   {shouldStream ? (
                     <>
                       <span className="text-terminal-red">ERROR:</span>{" "}
@@ -142,7 +144,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "Type 'help' fo
                   )}
                 </div>
               ) : msg.type === "success" ? (
-                <div className="pl-4 sm:pl-8 text-terminal-green text-xs sm:text-sm break-words">
+                <div className="pl-2 xs:pl-4 sm:pl-8 text-terminal-green text-[10px] xs:text-xs sm:text-sm break-words">
                   {shouldStream ? (
                     <TypewriterText
                       text={msg.content}
@@ -158,7 +160,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "Type 'help' fo
                   )}
                 </div>
               ) : (
-                <div className="pl-4 sm:pl-8 text-terminal-text text-xs sm:text-sm whitespace-pre-wrap break-words">
+                <div className="pl-2 xs:pl-4 sm:pl-8 text-terminal-text text-[10px] xs:text-xs sm:text-sm whitespace-pre-wrap break-words">
                   {shouldStream ? (
                     <TypewriterText 
                       text={msg.content} 
@@ -178,17 +180,21 @@ export function CliTerminal({ onCommand, messages, placeholder = "Type 'help' fo
         })}
 
         {isInputEnabled && (
-          <form onSubmit={handleSubmit} className="flex items-start gap-1 sm:gap-2 flex-wrap">
+          <form onSubmit={handleSubmit} className="flex items-start gap-1 xs:gap-1.5 sm:gap-2 flex-wrap">
             <TerminalPrompt>
               <input
                 ref={inputRef}
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                className="flex-1 min-w-[120px] bg-transparent border-none outline-none text-terminal-text font-mono caret-terminal-cyan text-xs sm:text-sm"
+                className="flex-1 min-w-[100px] xs:min-w-[120px] bg-transparent border-none outline-none text-terminal-text font-mono caret-terminal-cyan text-[10px] xs:text-xs sm:text-sm"
                 placeholder={placeholder}
                 autoComplete="off"
+                autoCapitalize="off"
+                autoCorrect="off"
                 spellCheck={false}
+                inputMode="text"
+                style={{ fontSize: '16px' }} // Prevent zoom on iOS
               />
             </TerminalPrompt>
           </form>

@@ -17,7 +17,7 @@ export function TerminalPrompt({ user, children }: TerminalPromptProps) {
     : user || "guest"
 
   return (
-    <div className="flex items-start gap-2 text-sm md:text-base">
+    <div className="flex items-start gap-1 xs:gap-2 text-[10px] xs:text-xs sm:text-sm md:text-base">
       <span className="text-terminal-yellow shrink-0">
         {farcaster.auth.isAuthenticated ? "@" : ""}{displayUser}@writecast
       </span>
