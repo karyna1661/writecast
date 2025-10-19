@@ -119,6 +119,9 @@ importers:
       date-fns:
         specifier: 4.1.0
         version: 4.1.0
+      dotenv:
+        specifier: ^16.6.1
+        version: 16.6.1
       embla-carousel-react:
         specifier: 8.5.1
         version: 8.5.1(react@18.0.0)
@@ -1385,6 +1388,10 @@ packages:
 
   dom-helpers@5.2.1:
     resolution: {integrity: sha512-nRCa7CK3VTrM2NmGkIy4cbK7IZlgBE/PYMn55rrXefr5xXDP0LdtfPnblFDoVdcAfslJ7or6iqAUnx0CCGIWQA==}
+
+  dotenv@16.6.1:
+    resolution: {integrity: sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow==}
+    engines: {node: '>=12'}
 
   electron-to-chromium@1.5.227:
     resolution: {integrity: sha512-ITxuoPfJu3lsNWUi2lBM2PaBPYgH3uqmxut5vmBxgYvyI4AlJ6P3Cai1O76mOrkJCBzq0IxWg/NtqOrpu/0gKA==}
@@ -3137,6 +3144,8 @@ snapshots:
     dependencies:
       '@babel/runtime': 7.28.4
       csstype: 3.1.3
+
+  dotenv@16.6.1: {}
 
   electron-to-chromium@1.5.227: {}
 
