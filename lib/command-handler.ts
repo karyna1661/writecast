@@ -462,9 +462,13 @@ async function handleConfirm(
   console.log("[v0] Game creation result:", { gameCode, error: gameError })
 
   if (gameError || !gameCode) {
+    const errorMsg = gameError?.includes("Failed to fetch") || gameError?.includes("NetworkError")
+      ? "Database connection failed. Please ensure Supabase environment variables are configured in Vercel."
+      : `Failed to create game: ${gameError || "Unknown error"}`
+    
     addMessage({
       type: "error",
-      content: `Failed to create game: ${gameError || "Unknown error"}`,
+      content: errorMsg,
       timestamp: Date.now(),
     })
     return
@@ -782,9 +786,13 @@ async function handleLeaderboard(addMessage: (msg: CliMessage) => void) {
   const { data: authors, error: authorsError } = await getAuthorLeaderboard(5)
 
   if (playersError || authorsError) {
+    const errorMsg = playersError?.includes("Failed to fetch") || authorsError?.includes("Failed to fetch")
+      ? "Database connection failed. Please ensure Supabase environment variables are configured in Vercel."
+      : "Failed to load leaderboard. Please try again."
+    
     addMessage({
       type: "error",
-      content: "Failed to load leaderboard. Please try again.",
+      content: errorMsg,
       timestamp: Date.now(),
     })
     return
@@ -1193,10 +1201,10 @@ async function handleHome(addMessage: (msg: CliMessage) => void, farcasterContex
 }
 
 async function handleInstall(addMessage: (msg: CliMessage) => void, farcasterContext?: any) {
-  if (!farcasterContext) {
+  if (!farcasterContext || !farcasterContext.isAvailable) {
     addMessage({
       type: "error",
-      content: "Farcaster SDK not available.",
+      content: "Farcaster SDK not available. This command only works in the Farcaster Mini App.",
       timestamp: Date.now(),
     })
     return
@@ -1205,18 +1213,19 @@ async function handleInstall(addMessage: (msg: CliMessage) => void, farcasterCon
   try {
     addMessage({
       type: "output",
-      content: `[Adding Writecast to mini apps...]`,
+      content: `Adding Writecast to your mini apps...`,
       timestamp: Date.now(),
     })
 
-    await farcasterContext.setPrimaryButton({
-      text: "Add Writecast",
-      action: () => {},
-    })
+    // Use the correct SDK method to add mini app
+    await farcasterSDK.actions.addMiniApp()
+
+    // Trigger success haptic feedback
+    await terminalHaptics.success()
 
     addMessage({
       type: "success",
-      content: `✓ Writecast added to mini apps`,
+      content: `✓ Writecast has been added to your mini apps!\n\nYou can now access it anytime from your Farcaster mini apps menu.`,
       timestamp: Date.now(),
     })
   } catch (error) {

@@ -120,7 +120,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
             <div key={i} className="space-y-1 overflow-hidden">
               {msg.type === "command" ? (
                 <TerminalPrompt>
-                  <span className="text-terminal-text text-xs sm:text-sm break-all">{msg.content}</span>
+                  <span className="text-terminal-text text-[10px] xs:text-xs sm:text-sm break-all">{msg.content}</span>
                 </TerminalPrompt>
               ) : msg.type === "error" ? (
                 <div className="pl-1 xs:pl-2 sm:pl-4 text-terminal-red text-[10px] xs:text-xs sm:text-sm">
