@@ -160,7 +160,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
                   )}
                 </div>
               ) : (
-                <div className="pl-2 xs:pl-4 sm:pl-8 text-terminal-text text-[8px] xs:text-[9px] sm:text-[10px] whitespace-pre-wrap break-words">
+                <div className="pl-2 xs:pl-4 sm:pl-8 text-terminal-text text-[10px] xs:text-xs sm:text-sm whitespace-pre-wrap break-words">
                   <div className="[text-indent:-2rem] pl-8">
                     {shouldStream ? (
                       <TypewriterText 

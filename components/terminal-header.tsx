@@ -7,9 +7,9 @@ export function TerminalHeader() {
 
   return (
     <div className="mb-2 xs:mb-4 sm:mb-8 flex flex-col items-center">
-      {/* ASCII Art - Hidden on very small screens, scaled on larger mobile */}
-      <div className="hidden xs:block">
-        <pre className="text-terminal-cyan text-[6px] xs:text-[8px] sm:text-sm md:text-base leading-tight mx-auto scale-[0.5] xs:scale-[0.6] sm:scale-100 origin-center overflow-hidden">
+      {/* ASCII Art - Visible on all screens with responsive sizing */}
+      <div>
+        <pre className="text-terminal-cyan text-[5px] xs:text-[6px] sm:text-xs md:text-sm leading-tight mx-auto scale-[0.4] xs:scale-[0.5] sm:scale-[0.7] md:scale-100 origin-center overflow-hidden">
           {`
 ██╗    ██╗██████╗ ██╗████████╗███████╗ ██████╗ █████╗ ███████╗████████╗
 ██║    ██║██╔══██╗██║╚══██╔══╝██╔════╝██╔════╝██╔══██╗██╔════╝╚══██╔══╝
@@ -19,13 +19,6 @@ export function TerminalHeader() {
  ╚══╝╚══╝ ╚═╝  ╚═╝╚═╝   ╚═╝   ╚══════╝ ╚═════╝╚═╝  ╚═╝╚══════╝   ╚═╝   
 `}
         </pre>
-      </div>
-      
-      {/* Text Logo for very small screens */}
-      <div className="xs:hidden">
-        <div className="text-terminal-cyan text-lg font-bold text-center">
-          WRITECAST
-        </div>
       </div>
       
       <div className="text-terminal-green text-[8px] xs:text-[10px] sm:text-sm mt-1 xs:mt-1 sm:mt-2 text-center mx-auto px-2 xs:px-4">
