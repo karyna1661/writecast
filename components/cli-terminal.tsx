@@ -109,7 +109,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
       {/* Messages area with scroll detection */}
       <div 
         ref={containerRef}
-        className="flex-1 overflow-y-auto space-y-1 xs:space-y-2 pr-1 xs:pr-2 pb-2 xs:pb-4 scrollbar-hide"
+        className="flex-1 overflow-y-auto overflow-x-hidden space-y-1 xs:space-y-2 pr-1 xs:pr-2 pb-2 xs:pb-4 scrollbar-hide"
         style={{ WebkitOverflowScrolling: 'touch' }}
       >
         {messages.map((msg, i) => {
@@ -117,7 +117,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
           const shouldStream = msg.type !== "command" && isStreaming
 
           return (
-            <div key={i} className="space-y-1">
+            <div key={i} className="space-y-1 overflow-hidden">
               {msg.type === "command" ? (
                 <TerminalPrompt>
                   <span className="text-terminal-text text-xs sm:text-sm break-all">{msg.content}</span>
@@ -196,7 +196,6 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
                 autoCorrect="off"
                 spellCheck={false}
                 inputMode="text"
-                style={{ fontSize: '16px' }} // Prevent zoom on iOS
               />
             </TerminalPrompt>
           </form>
