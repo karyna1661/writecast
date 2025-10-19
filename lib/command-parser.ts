@@ -42,10 +42,13 @@ SOCIAL & SHARING:
   profile @user           View Farcaster profile
 
 AUTHENTICATION:
-  login                   Sign in with Farcaster
+  login                   Sign in with Farcaster (enables game creation,
+                          sharing, and leaderboards)
   auth                    Get authentication token
   whoami                  Show current user
   logout                  Sign out
+
+Note: Guests can play games. Sign in to create games and share!
 
 NAVIGATION:
   open <url>              Open external URL

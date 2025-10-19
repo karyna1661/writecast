@@ -842,6 +842,23 @@ async function handleLogin(addMessage: (msg: CliMessage) => void, farcasterConte
     return
   }
 
+  // If already authenticated, show benefits
+  if (farcasterContext.auth.isAuthenticated) {
+    addMessage({
+      type: "success",
+      content: `Already signed in as @${farcasterContext.auth.user?.username}!\n\nBenefits:\n  ✓ Create and publish games\n  ✓ Share games on Farcaster\n  ✓ Appear on leaderboards\n  ✓ Track your game stats`,
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  // If not authenticated, explain benefits
+  addMessage({
+    type: "output",
+    content: "Sign in with Farcaster to unlock:\n  • Game creation\n  • Social sharing\n  • Leaderboard rankings\n  • Game authorship\n\nGuests can still play all games!",
+    timestamp: Date.now(),
+  })
+
   try {
     addMessage({
       type: "output",

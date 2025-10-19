@@ -22,13 +22,17 @@ export default function Home() {
             type: "output",
             content: `Welcome to WRITECAST - A CLI Word Game
 
+${farcaster.auth.isAuthenticated 
+  ? `Signed in as @${farcaster.auth.user?.username}` 
+  : 'Playing as guest - Sign in to create games and share!'}
+
 Two game modes available:
   1. FILL-IN-BLANK: Hide a word in your text, players guess it
   2. FRAME-THE-WORD: Write a piece, set a word that frames it
 
 Type 'help' to see all commands, or try:
-  • create <word> - Start a fill-in-blank game
-  • frame - Start a frame-the-word game
+  • create <word> - Start a fill-in-blank game ${!farcaster.auth.isAuthenticated ? '(requires sign in)' : ''}
+  • frame - Start a frame-the-word game ${!farcaster.auth.isAuthenticated ? '(requires sign in)' : ''}
   • play <gameId> - Play a game (try: ABC123, XYZ789, FRAME1)`,
             timestamp: Date.now(),
           },

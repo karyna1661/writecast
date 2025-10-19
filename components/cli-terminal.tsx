@@ -160,19 +160,21 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
                   )}
                 </div>
               ) : (
-                <div className="pl-2 xs:pl-4 sm:pl-8 text-terminal-text text-[10px] xs:text-xs sm:text-sm whitespace-pre-wrap break-words">
-                  {shouldStream ? (
-                    <TypewriterText 
-                      text={msg.content} 
-                      speed={15} 
-                      onProgress={(index) => {
-                        setTypewriterProgress(prev => ({ ...prev, [i]: index }))
-                      }}
-                      onComplete={handleStreamComplete} 
-                    />
-                  ) : (
-                    msg.content
-                  )}
+                <div className="pl-2 xs:pl-4 sm:pl-8 text-terminal-text text-[8px] xs:text-[9px] sm:text-[10px] whitespace-pre-wrap break-words">
+                  <div className="[text-indent:-2rem] pl-8">
+                    {shouldStream ? (
+                      <TypewriterText 
+                        text={msg.content} 
+                        speed={15} 
+                        onProgress={(index) => {
+                          setTypewriterProgress(prev => ({ ...prev, [i]: index }))
+                        }}
+                        onComplete={handleStreamComplete} 
+                      />
+                    ) : (
+                      msg.content
+                    )}
+                  </div>
                 </div>
               )}
             </div>
@@ -187,7 +189,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                className="flex-1 min-w-[100px] xs:min-w-[120px] bg-transparent border-none outline-none text-terminal-text font-mono caret-terminal-cyan text-[10px] xs:text-xs sm:text-sm"
+                className="flex-1 min-w-[100px] xs:min-w-[120px] bg-transparent border-none outline-none text-terminal-text font-mono caret-terminal-cyan text-[8px] xs:text-[9px] sm:text-[10px]"
                 placeholder={placeholder}
                 autoComplete="off"
                 autoCapitalize="off"
