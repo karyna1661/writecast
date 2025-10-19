@@ -27,7 +27,6 @@ Two game modes available:
   2. FRAME-THE-WORD: Write a piece, set a word that frames it
 
 Type 'help' to see all commands, or try:
-  • login - Sign in with Farcaster
   • create <word> - Start a fill-in-blank game
   • frame - Start a frame-the-word game
   • play <gameId> - Play a game (try: ABC123, XYZ789, FRAME1)`,

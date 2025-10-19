@@ -18,7 +18,7 @@ interface CliTerminalProps {
   placeholder?: string
 }
 
-export function CliTerminal({ onCommand, messages, placeholder = "Type 'help' for commands..." }: CliTerminalProps) {
+export function CliTerminal({ onCommand, messages, placeholder = "help for commands" }: CliTerminalProps) {
   const [input, setInput] = useState("")
   const [streamingIndex, setStreamingIndex] = useState(-1)
   const [isInputEnabled, setIsInputEnabled] = useState(false)

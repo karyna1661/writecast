@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react"
 import { farcasterSDK, isFarcasterAvailable } from "@/lib/farcaster/sdk-client"
+import { sdk } from "@farcaster/miniapp-sdk"
 import type { AuthState, FarcasterUser } from "@/lib/farcaster/types"
 
 interface FarcasterContextType {
@@ -45,9 +46,54 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
           // CRITICAL: Signal to Farcaster that the Mini App is ready
           await farcasterSDK.actions.ready()
           console.log("Farcaster Mini App ready!")
+          
+          // AUTOMATICALLY get user context from Farcaster
+          try {
+            // Try to get user context from SDK
+            const context = await sdk.context
+            if (context?.user) {
+              const user: FarcasterUser = {
+                fid: context.user.fid,
+                username: context.user.username || `user-${context.user.fid}`,
+                displayName: context.user.displayName || context.user.username,
+              }
+              
+              setAuth({
+                isAuthenticated: true,
+                user,
+                token: null, // Token can be fetched later if needed
+                isLoading: false,
+              })
+              console.log("Auto-authenticated user:", user.username)
+            } else {
+              // Fallback: try to get token and extract user info
+              const tokenResult = await farcasterSDK.quickAuth.getToken()
+              if (tokenResult?.token) {
+                // Mock user for now - in production, decode token to get real user info
+                const mockUser: FarcasterUser = {
+                  fid: 12345,
+                  username: "farcaster_user",
+                  displayName: "Farcaster User",
+                }
+                
+                setAuth({
+                  isAuthenticated: true,
+                  user: mockUser,
+                  token: tokenResult.token,
+                  isLoading: false,
+                })
+                console.log("Auto-authenticated with token:", mockUser.username)
+              } else {
+                setAuth(prev => ({ ...prev, isLoading: false }))
+              }
+            }
+          } catch (contextError) {
+            console.warn("Could not get user context:", contextError)
+            setAuth(prev => ({ ...prev, isLoading: false }))
+          }
+        } else {
+          setAuth(prev => ({ ...prev, isLoading: false }))
         }
-        
-        setAuth(prev => ({ ...prev, isLoading: false }))
       } catch (error) {
         console.error("Failed to initialize Farcaster SDK:", error)
         setAuth(prev => ({ ...prev, isLoading: false }))
