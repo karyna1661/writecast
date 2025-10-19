@@ -2,11 +2,11 @@
   "miniapp": {
     "version": "1",
     "name": "Writecast",
-    "iconUrl": "https://writecast.vercel.app/icon-512.png",
-    "homeUrl": "https://writecast.vercel.app",
-    "splashImageUrl": "https://writecast.vercel.app/og-image.png",
+    "iconUrl": "https://writecast-1.vercel.app/icon-512.png",
+    "homeUrl": "https://writecast-1.vercel.app",
+    "splashImageUrl": "https://writecast-1.vercel.app/og-image.png",
     "splashBackgroundColor": "#0a1628",
-    "heroImageUrl": "https://writecast.vercel.app/og-image.png",
+    "heroImageUrl": "https://writecast-1.vercel.app/og-image.png",
     "tagline": "A terminal-style word game on Farcaster"
   },
   "account": {
@@ -14,7 +14,7 @@
     "username": "writecast"
   },
   "verification": {
-    "domain": "writecast.vercel.app",
+    "domain": "writecast-1.vercel.app",
     "signature": "PLACEHOLDER_SIGNATURE_TO_BE_UPDATED_IN_PRODUCTION"
   },
   "permissions": [

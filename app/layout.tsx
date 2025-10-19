@@ -27,11 +27,11 @@ export const metadata = {
     title: "Writecast - CLI Word Game",
     description: "A terminal-style word guessing game on Farcaster",
     type: "website",
-    url: "https://writecast.vercel.app",
+    url: "https://writecast-1.vercel.app",
     siteName: "Writecast",
     images: [
       {
-        url: "https://writecast.vercel.app/og-image.png",
+        url: "https://writecast-1.vercel.app/og-image.png",
         width: 1200,
         height: 630,
         alt: "Writecast - CLI Word Game",
@@ -42,12 +42,12 @@ export const metadata = {
     card: "summary_large_image",
     title: "Writecast - CLI Word Game",
     description: "A terminal-style word guessing game on Farcaster",
-    images: ["https://writecast.vercel.app/og-image.png"],
+    images: ["https://writecast-1.vercel.app/og-image.png"],
   },
   other: {
     "farcaster:app": "writecast",
-    "farcaster:app_url": "https://writecast.vercel.app",
-    "fc:miniapp": '{"version":"1","imageUrl":"https://writecast.vercel.app/og-image.png","button":{"title":"Play Now","action":{"type":"launch_miniapp","name":"Writecast","url":"https://writecast.vercel.app","splashImageUrl":"https://writecast.vercel.app/og-image.png","splashBackgroundColor":"#0a1628"}}}',
+    "farcaster:app_url": "https://writecast-1.vercel.app",
+    "fc:miniapp": '{"version":"1","imageUrl":"https://writecast-1.vercel.app/og-image.png","button":{"title":"Play Now","action":{"type":"launch_miniapp","name":"Writecast","url":"https://writecast-1.vercel.app","splashImageUrl":"https://writecast-1.vercel.app/og-image.png","splashBackgroundColor":"#0a1628"}}}',
   },
 }
 

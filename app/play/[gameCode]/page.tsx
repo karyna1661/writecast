@@ -19,10 +19,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         openGraph: {
           title: `Game ${gameCode} - Writecast`,
           description: "Game not found on Writecast",
-          images: ["https://writecast.vercel.app/og-image.png"],
+          images: ["https://writecast-1.vercel.app/og-image.png"],
         },
         other: {
-          "fc:miniapp": `{"version":"1","imageUrl":"https://writecast.vercel.app/og-image.png","button":{"title":"Play Game","action":{"type":"launch_miniapp","name":"Writecast","url":"https://writecast.vercel.app/play/${gameCode}","splashImageUrl":"https://writecast.vercel.app/og-image.png","splashBackgroundColor":"#0a1628"}}}`,
+          "fc:miniapp": `{"version":"1","imageUrl":"https://writecast-1.vercel.app/og-image.png","button":{"title":"Play Game","action":{"type":"launch_miniapp","name":"Writecast","url":"https://writecast-1.vercel.app/play/${gameCode}","splashImageUrl":"https://writecast-1.vercel.app/og-image.png","splashBackgroundColor":"#0a1628"}}}`,
         },
       }
     }
@@ -36,11 +36,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       openGraph: {
         title: `Game ${gameCode} - Writecast`,
         description,
-        images: ["https://writecast.vercel.app/og-image.png"],
-        url: `https://writecast.vercel.app/play/${gameCode}`,
+        images: ["https://writecast-1.vercel.app/og-image.png"],
+        url: `https://writecast-1.vercel.app/play/${gameCode}`,
       },
       other: {
-        "fc:miniapp": `{"version":"1","imageUrl":"https://writecast.vercel.app/og-image.png","button":{"title":"Play Game","action":{"type":"launch_miniapp","name":"Writecast","url":"https://writecast.vercel.app/play/${gameCode}","splashImageUrl":"https://writecast.vercel.app/og-image.png","splashBackgroundColor":"#0a1628"}}}`,
+        "fc:miniapp": `{"version":"1","imageUrl":"https://writecast-1.vercel.app/og-image.png","button":{"title":"Play Game","action":{"type":"launch_miniapp","name":"Writecast","url":"https://writecast-1.vercel.app/play/${gameCode}","splashImageUrl":"https://writecast-1.vercel.app/og-image.png","splashBackgroundColor":"#0a1628"}}}`,
       },
     }
   } catch (error) {
@@ -50,10 +50,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       openGraph: {
         title: `Game ${gameCode} - Writecast`,
         description: "Play this word game on Writecast",
-        images: ["https://writecast.vercel.app/og-image.png"],
+        images: ["https://writecast-1.vercel.app/og-image.png"],
       },
       other: {
-        "fc:miniapp": `{"version":"1","imageUrl":"https://writecast.vercel.app/og-image.png","button":{"title":"Play Game","action":{"type":"launch_miniapp","name":"Writecast","url":"https://writecast.vercel.app/play/${gameCode}","splashImageUrl":"https://writecast.vercel.app/og-image.png","splashBackgroundColor":"#0a1628"}}}`,
+        "fc:miniapp": `{"version":"1","imageUrl":"https://writecast-1.vercel.app/og-image.png","button":{"title":"Play Game","action":{"type":"launch_miniapp","name":"Writecast","url":"https://writecast-1.vercel.app/play/${gameCode}","splashImageUrl":"https://writecast-1.vercel.app/og-image.png","splashBackgroundColor":"#0a1628"}}}`,
       },
     }
   }
