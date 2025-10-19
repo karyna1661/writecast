@@ -47,11 +47,7 @@ export const metadata = {
   other: {
     "farcaster:app": "writecast",
     "farcaster:app_url": "https://writecast.vercel.app",
-    "fc:frame": "vNext",
-    "fc:frame:image": "https://writecast.vercel.app/og-image.png",
-    "fc:frame:button:1": "Play Now",
-    "fc:frame:button:1:action": "link",
-    "fc:frame:button:1:target": "https://writecast.vercel.app",
+    "fc:miniapp": '{"version":"1","imageUrl":"https://writecast.vercel.app/og-image.png","button":{"title":"Play Now","action":{"type":"launch_miniapp","name":"Writecast","url":"https://writecast.vercel.app","splashImageUrl":"https://writecast.vercel.app/og-image.png","splashBackgroundColor":"#0a1628"}}}',
   },
 }
 

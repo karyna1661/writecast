@@ -22,11 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           images: ["https://writecast.vercel.app/og-image.png"],
         },
         other: {
-          "fc:frame": "vNext",
-          "fc:frame:image": "https://writecast.vercel.app/og-image.png",
-          "fc:frame:button:1": "Play Game",
-          "fc:frame:button:1:action": "link",
-          "fc:frame:button:1:target": `https://writecast.vercel.app/play/${gameCode}`,
+          "fc:miniapp": `{"version":"1","imageUrl":"https://writecast.vercel.app/og-image.png","button":{"title":"Play Game","action":{"type":"launch_miniapp","name":"Writecast","url":"https://writecast.vercel.app/play/${gameCode}","splashImageUrl":"https://writecast.vercel.app/og-image.png","splashBackgroundColor":"#0a1628"}}}`,
         },
       }
     }
@@ -44,11 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         url: `https://writecast.vercel.app/play/${gameCode}`,
       },
       other: {
-        "fc:frame": "vNext",
-        "fc:frame:image": "https://writecast.vercel.app/og-image.png",
-        "fc:frame:button:1": "Play Game",
-        "fc:frame:button:1:action": "link",
-        "fc:frame:button:1:target": `https://writecast.vercel.app/play/${gameCode}`,
+        "fc:miniapp": `{"version":"1","imageUrl":"https://writecast.vercel.app/og-image.png","button":{"title":"Play Game","action":{"type":"launch_miniapp","name":"Writecast","url":"https://writecast.vercel.app/play/${gameCode}","splashImageUrl":"https://writecast.vercel.app/og-image.png","splashBackgroundColor":"#0a1628"}}}`,
       },
     }
   } catch (error) {
@@ -61,11 +53,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         images: ["https://writecast.vercel.app/og-image.png"],
       },
       other: {
-        "fc:frame": "vNext",
-        "fc:frame:image": "https://writecast.vercel.app/og-image.png",
-        "fc:frame:button:1": "Play Game",
-        "fc:frame:button:1:action": "link",
-        "fc:frame:button:1:target": `https://writecast.vercel.app/play/${gameCode}`,
+        "fc:miniapp": `{"version":"1","imageUrl":"https://writecast.vercel.app/og-image.png","button":{"title":"Play Game","action":{"type":"launch_miniapp","name":"Writecast","url":"https://writecast.vercel.app/play/${gameCode}","splashImageUrl":"https://writecast.vercel.app/og-image.png","splashBackgroundColor":"#0a1628"}}}`,
       },
     }
   }
