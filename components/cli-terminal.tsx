@@ -123,7 +123,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
                   <span className="text-terminal-text text-xs sm:text-sm break-all">{msg.content}</span>
                 </TerminalPrompt>
               ) : msg.type === "error" ? (
-                <div className="pl-2 xs:pl-4 sm:pl-8 text-terminal-red text-[10px] xs:text-xs sm:text-sm">
+                <div className="pl-1 xs:pl-2 sm:pl-4 text-terminal-red text-[10px] xs:text-xs sm:text-sm">
                   {shouldStream ? (
                     <>
                       <span className="text-terminal-red">ERROR:</span>{" "}
@@ -144,7 +144,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
                   )}
                 </div>
               ) : msg.type === "success" ? (
-                <div className="pl-2 xs:pl-4 sm:pl-8 text-terminal-green text-[10px] xs:text-xs sm:text-sm break-words">
+                <div className="pl-1 xs:pl-2 sm:pl-4 text-terminal-green text-[10px] xs:text-xs sm:text-sm break-words">
                   {shouldStream ? (
                     <TypewriterText
                       text={msg.content}
@@ -160,7 +160,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
                   )}
                 </div>
               ) : (
-                <div className="pl-2 xs:pl-4 sm:pl-8 text-terminal-text text-[10px] xs:text-xs sm:text-sm whitespace-pre-wrap break-words">
+                <div className="pl-1 xs:pl-2 sm:pl-4 text-terminal-text text-[10px] xs:text-xs sm:text-sm whitespace-pre-wrap break-words">
                   <div className="[text-indent:-2rem] pl-8">
                     {shouldStream ? (
                       <TypewriterText 
@@ -189,7 +189,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                className="flex-1 min-w-[100px] xs:min-w-[120px] bg-transparent border-none outline-none text-terminal-text font-mono caret-terminal-cyan text-[8px] xs:text-[9px] sm:text-[10px]"
+                className="flex-1 min-w-[100px] xs:min-w-[120px] bg-transparent border-none outline-none text-terminal-text font-mono caret-terminal-cyan text-[10px] xs:text-xs sm:text-sm"
                 placeholder={placeholder}
                 autoComplete="off"
                 autoCapitalize="off"

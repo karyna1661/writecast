@@ -51,6 +51,8 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
           try {
             // Try to get user context from SDK
             const context = await sdk.context
+            console.log("SDK context:", context)
+            
             if (context?.user) {
               const user: FarcasterUser = {
                 fid: context.user.fid,
@@ -67,7 +69,10 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
               console.log("Auto-authenticated user:", user.username)
             } else {
               // Fallback: try to get token and extract user info
+              console.log("No user context found, trying token auth...")
               const tokenResult = await farcasterSDK.quickAuth.getToken()
+              console.log("Token result:", tokenResult)
+              
               if (tokenResult?.token) {
                 // Mock user for now - in production, decode token to get real user info
                 const mockUser: FarcasterUser = {
@@ -84,6 +89,7 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
                 })
                 console.log("Auto-authenticated with token:", mockUser.username)
               } else {
+                console.log("No token available, staying as guest")
                 setAuth(prev => ({ ...prev, isLoading: false }))
               }
             }
