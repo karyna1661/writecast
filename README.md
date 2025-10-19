@@ -235,10 +235,18 @@ See [FARCASTER_ASSETS_GUIDE.md](./FARCASTER_ASSETS_GUIDE.md) for detailed asset 
 
 ## 📚 Documentation
 
+### 🎯 Core Documentation
 - **[SETUP.md](./SETUP.md)** - Detailed local setup instructions
 - **[DEPLOYMENT.md](./DEPLOYMENT.md)** - Production deployment guide
 - **[docs/database-schema.md](./docs/database-schema.md)** - Database structure
 - **[docs/v1-farcaster-miniapp-plan.md](./docs/v1-farcaster-miniapp-plan.md)** - Integration plan
+
+### 🚀 Farcaster Mini App Guides
+- **[Complete Guide](FARCASTER_MINIAPP_COMPLETE_GUIDE.md)** - Comprehensive Farcaster Mini App development guide
+- **[Quick Reference](FARCASTER_QUICK_REFERENCE.md)** - One-page cheat sheet for quick setup
+- **[Troubleshooting](docs/farcaster-troubleshooting.md)** - Common issues and solutions
+- **[Code Templates](docs/farcaster-code-templates.md)** - Copy-paste ready code templates
+- **[OG Image Fix](OG_IMAGE_FIX.md)** - Instructions for fixing preview image issues
 - **[FARCASTER_ASSETS_GUIDE.md](./FARCASTER_ASSETS_GUIDE.md)** - Asset creation guide
 
 ---
