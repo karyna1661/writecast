@@ -14,11 +14,13 @@ export default function Home() {
   const farcaster = useFarcaster()
 
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setMessages([
-        {
-          type: "output",
-          content: `Welcome to WRITECAST - A CLI Word Game
+    // Only show welcome message after SDK is ready
+    if (!farcaster.auth.isLoading) {
+      const timer = setTimeout(() => {
+        setMessages([
+          {
+            type: "output",
+            content: `Welcome to WRITECAST - A CLI Word Game
 
 Two game modes available:
   1. FILL-IN-BLANK: Hide a word in your text, players guess it
@@ -29,13 +31,14 @@ Type 'help' to see all commands, or try:
   • create <word> - Start a fill-in-blank game
   • frame - Start a frame-the-word game
   • play <gameId> - Play a game (try: ABC123, XYZ789, FRAME1)`,
-          timestamp: Date.now(),
-        },
-      ])
-    }, 500) // Small delay for dramatic effect
+            timestamp: Date.now(),
+          },
+        ])
+      }, 500) // Small delay for dramatic effect
 
-    return () => clearTimeout(timer)
-  }, [])
+      return () => clearTimeout(timer)
+    }
+  }, [farcaster.auth.isLoading])
 
   const addMessage = (msg: CliMessage) => {
     setMessages((prev) => [...prev, msg])
@@ -48,6 +51,21 @@ Type 'help' to see all commands, or try:
     }
 
     handleCommand(input, gameState, setGameState, addMessage, farcaster)
+  }
+
+  // Show loading state while SDK initializes
+  if (farcaster.auth.isLoading) {
+    return (
+      <TerminalWindow>
+        <TerminalHeader />
+        <div className="flex-1 flex items-center justify-center">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
+            <p className="text-green-400">Initializing Farcaster Mini App...</p>
+          </div>
+        </div>
+      </TerminalWindow>
+    )
   }
 
   return (

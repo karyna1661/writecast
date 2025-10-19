@@ -38,9 +38,15 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const initSDK = async () => {
       try {
-        setIsAvailable(isFarcasterAvailable())
+        const available = isFarcasterAvailable()
+        setIsAvailable(available)
         
-        // Don't try to get token on initialization - only when explicitly needed
+        if (available) {
+          // CRITICAL: Signal to Farcaster that the Mini App is ready
+          await farcasterSDK.actions.ready()
+          console.log("Farcaster Mini App ready!")
+        }
+        
         setAuth(prev => ({ ...prev, isLoading: false }))
       } catch (error) {
         console.error("Failed to initialize Farcaster SDK:", error)
