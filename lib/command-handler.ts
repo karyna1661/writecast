@@ -23,13 +23,13 @@ function getCurrentUserId(farcasterContext?: any): string {
   return "anonymous_user"
 }
 
-export function handleCommand(
+export async function handleCommand(
   input: string,
   gameState: GameState,
   setGameState: (state: GameState) => void,
   addMessage: (msg: CliMessage) => void,
   farcasterContext?: any,
-): void {
+): Promise<void> {
   const { command, args, rawArgs } = parseCommand(input)
 
   // Add command to history
@@ -41,7 +41,7 @@ export function handleCommand(
       break
 
     case "games":
-      handleGames(addMessage)
+      await handleGames(addMessage)
       break
 
     case "clear":
@@ -87,36 +87,36 @@ export function handleCommand(
       break
 
     case "confirm":
-      handleConfirm(gameState, setGameState, addMessage, farcasterContext)
+      await handleConfirm(gameState, setGameState, addMessage, farcasterContext)
       break
 
     case "play":
-      handlePlay(args, gameState, setGameState, addMessage)
+      await handlePlay(args, gameState, setGameState, addMessage)
       break
 
     case "guess":
-      handleGuess(rawArgs, gameState, setGameState, addMessage, farcasterContext)
+      await handleGuess(rawArgs, gameState, setGameState, addMessage, farcasterContext)
       break
 
     case "reveal":
-      handleReveal(args, addMessage)
+      await handleReveal(args, addMessage)
       break
 
     case "leaderboard":
-      handleLeaderboard(addMessage)
+      await handleLeaderboard(addMessage)
       break
 
     case "notify":
-      handleNotify(rawArgs, addMessage)
+      await handleNotify(rawArgs, addMessage)
       break
 
     // Farcaster Authentication Commands
     case "login":
-      handleLogin(addMessage, farcasterContext)
+      await handleLogin(addMessage, farcasterContext)
       break
 
     case "auth":
-      handleAuth(addMessage, farcasterContext)
+      await handleAuth(addMessage, farcasterContext)
       break
 
     case "whoami":
@@ -129,28 +129,28 @@ export function handleCommand(
 
     // Farcaster Social Commands
     case "share":
-      handleShare(args, addMessage, farcasterContext)
+      await handleShare(args, addMessage, farcasterContext)
       break
 
     case "invite":
-      handleInvite(rawArgs, addMessage, farcasterContext)
+      await handleInvite(rawArgs, addMessage, farcasterContext)
       break
 
     case "profile":
-      handleProfile(rawArgs, addMessage, farcasterContext)
+      await handleProfile(rawArgs, addMessage, farcasterContext)
       break
 
     // Farcaster Navigation Commands
     case "open":
-      handleOpen(rawArgs, addMessage, farcasterContext)
+      await handleOpen(rawArgs, addMessage, farcasterContext)
       break
 
     case "home":
-      handleHome(addMessage, farcasterContext)
+      await handleHome(addMessage, farcasterContext)
       break
 
     case "install":
-      handleInstall(addMessage, farcasterContext)
+      await handleInstall(addMessage, farcasterContext)
       break
 
     default:

@@ -47,13 +47,13 @@ Type 'help' to see all commands, or try:
     setMessages((prev) => [...prev, msg])
   }
 
-  const onCommand = (input: string) => {
+  const onCommand = async (input: string) => {
     if (input.toLowerCase() === "clear") {
       setMessages([])
       return
     }
 
-    handleCommand(input, gameState, setGameState, addMessage, farcaster)
+    await handleCommand(input, gameState, setGameState, addMessage, farcaster)
   }
 
   // Show loading state while SDK initializes
