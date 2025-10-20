@@ -55,11 +55,46 @@ export interface LeaderboardEntry {
 // USER OPERATIONS
 // ============================================================================
 
-export async function getOrCreateUser(username = "demo_player") {
+export async function getOrCreateUser(userInfo: string | { userId: string; username?: string; displayName?: string } = "demo_player") {
   const supabase = await createClient()
 
-  // Try to find existing user
-  const { data: existingUser } = await supabase.from("users").select("*").eq("farcaster_username", username).single()
+  // Parse userInfo to extract Farcaster data
+  let farcasterUsername = "demo_player"
+  let farcasterId = "demo_player"
+  let displayName = "Demo Player"
+
+  if (typeof userInfo === "object" && userInfo.userId) {
+    // New format with user info object
+    if (userInfo.userId.startsWith("farcaster_")) {
+      const fid = userInfo.userId.replace("farcaster_", "")
+      farcasterId = fid
+      farcasterUsername = userInfo.username || `user_${fid}`
+      displayName = userInfo.displayName || `User ${fid}`
+    } else if (userInfo.userId === "anonymous_user") {
+      farcasterUsername = "anonymous"
+      displayName = "Anonymous"
+      farcasterId = `anon_${Date.now()}`
+    }
+  } else if (typeof userInfo === "string") {
+    // Legacy string format
+    if (userInfo.startsWith("farcaster_")) {
+      const fid = userInfo.replace("farcaster_", "")
+      farcasterId = fid
+      farcasterUsername = `user_${fid}`
+      displayName = `User ${fid}`
+    } else if (userInfo === "demo_player") {
+      farcasterUsername = "demo_player"
+      displayName = "Demo Player"
+      farcasterId = `demo_${Date.now()}`
+    } else {
+      farcasterUsername = "anonymous"
+      displayName = "Anonymous"
+      farcasterId = `anon_${Date.now()}`
+    }
+  }
+
+  // Try to find existing user by farcaster_id
+  const { data: existingUser } = await supabase.from("users").select("*").eq("farcaster_id", farcasterId).single()
 
   if (existingUser) {
     return { data: existingUser, error: null }
@@ -69,9 +104,9 @@ export async function getOrCreateUser(username = "demo_player") {
   const { data: newUser, error } = await supabase
     .from("users")
     .insert({
-      farcaster_username: username,
-      display_name: username,
-      farcaster_id: `demo_${username}_${Date.now()}`,
+      farcaster_username: farcasterUsername,
+      display_name: displayName,
+      farcaster_id: farcasterId,
     })
     .select()
     .single()

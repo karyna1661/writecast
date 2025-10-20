@@ -174,21 +174,25 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
       }
 
       let text = ""
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://writecast.vercel.app"
+      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"
+      const playUrl = `${baseUrl}/?code=${gameCode}`
       
       switch (template) {
         case "created":
-          text = `I just created a word game on Writecast! 🎮\n\nCan you guess my hidden word?\nPlay now: ${baseUrl}/play/${gameCode}\n\nThink you can beat it in 3 tries? 🤔`
+          text = `I just created a word game on Writecast! 🎮\n\nGame Code: ${gameCode}\nCan you guess my hidden word?\n\nClick Play Now to start! 🤔`
           break
         case "won":
-          text = `I just won a word game on Writecast! 🎉\n\nGame: ${gameCode}\nPlay it yourself: ${baseUrl}/play/${gameCode}\n\nCan you beat my score? 🏆`
+          text = `I just won a word game on Writecast! 🎉\n\nGame: ${gameCode}\nPlay it yourself and see if you can beat my score! 🏆`
           break
         case "invite":
-          text = `Join me in this word game on Writecast! 🎮\n\nGame: ${gameCode}\nPlay now: ${baseUrl}/play/${gameCode}\n\nLet's see who's smarter! 🧠`
+          text = `Join me in this word game on Writecast! 🎮\n\nGame: ${gameCode}\nLet's see who's smarter! 🧠`
           break
       }
 
-      await farcasterSDK.actions.composeCast(text)
+      // Compose cast with text and embed URL for Frame
+      await farcasterSDK.actions.composeCast(text, {
+        embeds: [playUrl]
+      })
     } catch (error) {
       console.error("Failed to share game:", error)
       throw error
@@ -201,7 +205,9 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Farcaster SDK not available")
       }
 
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://writecast.vercel.app"
+      const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"
+      
+      // Use the correct SDK method to open mini app
       await farcasterSDK.actions.openMiniApp(appUrl)
     } catch (error) {
       console.error("Failed to invite user:", error)

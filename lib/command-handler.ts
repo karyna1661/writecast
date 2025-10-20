@@ -23,6 +23,18 @@ function getCurrentUserId(farcasterContext?: any): string {
   return "anonymous_user"
 }
 
+// Helper function to get current user info for database storage
+function getCurrentUserInfo(farcasterContext?: any): { userId: string; username?: string; displayName?: string } {
+  if (farcasterContext?.auth?.isAuthenticated && farcasterContext.auth.user) {
+    return {
+      userId: `farcaster_${farcasterContext.auth.user.fid}`,
+      username: farcasterContext.auth.user.username,
+      displayName: farcasterContext.auth.user.displayName || farcasterContext.auth.user.username
+    }
+  }
+  return { userId: "anonymous_user" }
+}
+
 export async function handleCommand(
   input: string,
   gameState: GameState,
@@ -431,9 +443,9 @@ async function handleConfirm(
   addMessage({ type: "output", content: "Creating game...", timestamp: Date.now() })
 
   // Use hybrid authentication - authenticated users get Farcaster ID, anonymous get generic ID
-  const userId = getCurrentUserId(farcasterContext)
-  console.log("[v0] Getting or creating author...", { userId })
-  const { data: user, error: userError } = await getOrCreateUser(userId)
+  const userInfo = getCurrentUserInfo(farcasterContext)
+  console.log("[v0] Getting or creating author...", { userInfo })
+  const { data: user, error: userError } = await getOrCreateUser(userInfo)
   console.log("[v0] User result:", { user, error: userError })
 
   if (userError || !user) {
@@ -614,8 +626,8 @@ async function handleGuess(
   addMessage({ type: "output", content: "Submitting guess...", timestamp: Date.now() })
 
   // Use hybrid authentication - authenticated users get Farcaster ID, anonymous get generic ID
-  const userId = getCurrentUserId(farcasterContext)
-  const { data: user, error: userError } = await getOrCreateUser(userId)
+  const userInfo = getCurrentUserInfo(farcasterContext)
+  const { data: user, error: userError } = await getOrCreateUser(userInfo)
   if (userError || !user) {
     addMessage({
       type: "error",

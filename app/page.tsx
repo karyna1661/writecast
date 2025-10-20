@@ -43,6 +43,21 @@ Type 'help' to see all commands, or try:
     }
   }, [farcaster.auth.isLoading])
 
+  // Deep-link support: Auto-play game if code parameter exists
+  useEffect(() => {
+    if (!farcaster.auth.isLoading && typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const code = params.get('code')
+      
+      if (code) {
+        // Auto-execute play command
+        setTimeout(() => {
+          handleCommand(`play ${code}`, gameState, setGameState, addMessage, farcaster)
+        }, 1000) // Small delay to ensure UI is ready
+      }
+    }
+  }, [farcaster.auth.isLoading])
+
   const addMessage = (msg: CliMessage) => {
     setMessages((prev) => [...prev, msg])
   }
