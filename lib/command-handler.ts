@@ -10,6 +10,10 @@ import {
   revealGame,
   getPlayerLeaderboard,
   getAuthorLeaderboard,
+  canPlayGame,
+  useGameInvite,
+  getGameInviteStatus,
+  getPlayerGameSession,
 } from "@/lib/actions/game-actions"
 import { joinWaitlist, getWaitlistCount } from "@/lib/actions/waitlist-actions"
 import { useFarcaster } from "@/contexts/FarcasterContext"
@@ -53,7 +57,7 @@ export async function handleCommand(
       break
 
     case "games":
-      await handleGames(addMessage)
+      await handleGames(addMessage, farcasterContext)
       break
 
     case "clear":
@@ -103,11 +107,15 @@ export async function handleCommand(
       break
 
     case "play":
-      await handlePlay(args, gameState, setGameState, addMessage)
+      await handlePlay(args, gameState, setGameState, addMessage, farcasterContext)
       break
 
     case "guess":
       await handleGuess(rawArgs, gameState, setGameState, addMessage, farcasterContext)
+      break
+
+    case "invite":
+      await handleInviteForHelp(rawArgs, gameState, setGameState, addMessage, farcasterContext)
       break
 
     case "reveal":
@@ -174,11 +182,12 @@ export async function handleCommand(
   }
 }
 
-async function handleGames(addMessage: (msg: CliMessage) => void) {
-  addMessage({ type: "output", content: "Loading games...", timestamp: Date.now() })
-
-  console.log("[v0] Fetching all games from database...")
-  const { data: games, error } = await getAllGames()
+async function handleGames(addMessage: (msg: CliMessage) => void, farcasterContext?: any) {
+  console.log("[v0] Fetching available games from database...")
+  
+  // Get current user ID for filtering
+  const userId = getCurrentUserId(farcasterContext)
+  const { data: games, error } = await getAllGames(userId)
 
   console.log("[v0] Games result:", { games, error })
 
@@ -194,7 +203,7 @@ async function handleGames(addMessage: (msg: CliMessage) => void) {
   if (games.length === 0) {
     addMessage({
       type: "error",
-      content: `No games found in database. The database may need to be initialized.\n\nPlease run the SQL scripts in the 'scripts' folder to set up the database.`,
+      content: `No games available for you to play.\n\nThis could mean:\n  • You've completed all available games\n  • You created all available games\n  • No games exist in the database\n\nTry creating a new game or ask someone to share a game code!`,
       timestamp: Date.now(),
     })
     return
@@ -212,7 +221,7 @@ async function handleGames(addMessage: (msg: CliMessage) => void) {
 
   const gamesText = `
 ${"━".repeat(60)}
-AVAILABLE DEMO GAMES (${games.length} total)
+AVAILABLE GAMES FOR YOU (${games.length} total)
 ${"━".repeat(60)}
 
 FILL-IN-BLANK GAMES:
@@ -520,11 +529,12 @@ async function handlePlay(
   gameState: GameState,
   setGameState: (state: GameState) => void,
   addMessage: (msg: CliMessage) => void,
+  farcasterContext?: any,
 ) {
   if (!args[0]) {
     addMessage({
       type: "error",
-      content: "Usage: play <gameId>\nExample: play ABC123\n\nType 'games' to see all available demo games!",
+      content: "Usage: play <gameId>\nExample: play ABC123\n\nType 'games' to see all available games!",
       timestamp: Date.now(),
     })
     return
@@ -532,21 +542,35 @@ async function handlePlay(
 
   const gameId = args[0].toUpperCase()
 
-  addMessage({ type: "output", content: "Loading game...", timestamp: Date.now() })
+  // Get current user ID for validation
+  const userId = getCurrentUserId(farcasterContext)
+  
+  // Check if player can play this game
+  const { canPlay, reason } = await canPlayGame(gameId, userId)
+  
+  if (!canPlay) {
+    addMessage({
+      type: "error",
+      content: `${reason}\n\nType 'games' to see available games you can play!`,
+      timestamp: Date.now(),
+    })
+    return
+  }
 
   const { data: game, error } = await getGameByCode(gameId)
 
   if (error || !game) {
     addMessage({
       type: "error",
-      content: `Game not found: ${gameId}\n\nType 'games' to see all available demo games!`,
+      content: `Game not found: ${gameId}\n\nType 'games' to see all available games!`,
       timestamp: Date.now(),
     })
     return
   }
 
   // Get or create player
-  const { data: user, error: userError } = await getOrCreateUser("demo_player")
+  const userInfo = getCurrentUserInfo(farcasterContext)
+  const { data: user, error: userError } = await getOrCreateUser(userInfo)
   if (userError || !user) {
     addMessage({
       type: "error",
@@ -725,22 +749,139 @@ ${"━".repeat(60)}`,
         currentGameId: "",
         attempts: 0,
       })
-    } else {
-      // Trigger error haptic feedback for wrong guess
-      await terminalHaptics.wrongGuess()
+      } else {
+        // Trigger error haptic feedback for wrong guess
+        await terminalHaptics.wrongGuess()
 
-      setGameState({
-        ...gameState,
-        attempts: result.attempt_number,
-      })
+        setGameState({
+          ...gameState,
+          attempts: result.attempt_number,
+        })
 
-      addMessage({
-        type: "error",
-        content: `Incorrect! Attempts remaining: ${3 - result.attempt_number}/3\nTry again: guess <word>`,
-        timestamp: Date.now(),
-      })
-    }
+        const remainingAttempts = (result.max_attempts || 3) - result.attempt_number
+        let message = `Incorrect! Attempts remaining: ${remainingAttempts}/${result.max_attempts || 3}\nTry again: guess <word>`
+        
+        // Show invite prompt if on 3rd attempt and haven't used invite
+        if (result.attempt_number === 3 && result.can_invite) {
+          message += `\n\n💡 You have 1 attempt left! Use 'invite @friend' for 1 bonus attempt!`
+        }
+
+        addMessage({
+          type: "error",
+          content: message,
+          timestamp: Date.now(),
+        })
+      }
   }
+}
+
+async function handleInviteForHelp(
+  rawArgs: string,
+  gameState: GameState,
+  setGameState: (state: GameState) => void,
+  addMessage: (msg: CliMessage) => void,
+  farcasterContext?: any,
+) {
+  if (!gameState.currentGame) {
+    addMessage({
+      type: "error",
+      content: "No active game! Use 'play <gameId>' to start a game first.",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  if (!rawArgs) {
+    addMessage({
+      type: "error",
+      content: "Usage: invite @username\nExample: invite @friend\n\nThis gives you 1 bonus attempt if your friend helps!",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  const invitedUsername = rawArgs.trim()
+  
+  // Validate username format
+  if (!invitedUsername.startsWith("@")) {
+    addMessage({
+      type: "error",
+      content: "Username must start with @\nExample: invite @friend",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  addMessage({ type: "output", content: "Sending invite for help...", timestamp: Date.now() })
+
+  // Get current user info
+  const userInfo = getCurrentUserInfo(farcasterContext)
+  const { data: user, error: userError } = await getOrCreateUser(userInfo)
+  if (userError || !user) {
+    addMessage({
+      type: "error",
+      content: "Failed to get player info. Please try again.",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  // Get game ID
+  const { data: game, error: gameError } = await getGameByCode(gameState.currentGameId)
+  if (gameError || !game) {
+    addMessage({
+      type: "error",
+      content: "Failed to load game. Please try again.",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  // Use invite
+  const { data: inviteResult, error: inviteError } = await useGameInvite(
+    game.id,
+    user.id,
+    invitedUsername
+  )
+
+  if (inviteError || !inviteResult) {
+    addMessage({
+      type: "error",
+      content: `Failed to send invite: ${inviteError || "Unknown error"}`,
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  if (inviteResult.error) {
+    addMessage({
+      type: "error",
+      content: inviteResult.error,
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  // Trigger success haptic feedback
+  await terminalHaptics.success()
+
+  addMessage({
+    type: "success",
+    content: `
+${"━".repeat(60)}
+INVITE SENT! 📞
+${"━".repeat(60)}
+
+Invited: ${invitedUsername}
+Game: ${gameState.currentGameId}
+
+You now have 4 total attempts!
+If ${invitedUsername} plays and wins, you'll earn 2 bonus points!
+
+${"━".repeat(60)}
+Continue playing: guess <word>`,
+    timestamp: Date.now(),
+  })
 }
 
 async function handleReveal(args: string[], addMessage: (msg: CliMessage) => void) {
@@ -754,8 +895,6 @@ async function handleReveal(args: string[], addMessage: (msg: CliMessage) => voi
   }
 
   const gameId = args[0].toUpperCase()
-
-  addMessage({ type: "output", content: "Loading game stats...", timestamp: Date.now() })
 
   const { data: game, error } = await revealGame(gameId)
 
@@ -792,8 +931,6 @@ ${"━".repeat(60)}`
 }
 
 async function handleLeaderboard(addMessage: (msg: CliMessage) => void) {
-  addMessage({ type: "output", content: "Loading leaderboard...", timestamp: Date.now() })
-
   const { data: players, error: playersError } = await getPlayerLeaderboard(5)
   const { data: authors, error: authorsError } = await getAuthorLeaderboard(5)
 
@@ -1230,7 +1367,7 @@ async function handleInstall(addMessage: (msg: CliMessage) => void, farcasterCon
     })
 
     // Use the correct SDK method to add mini app
-    await farcasterSDK.actions.addMiniApp()
+    await farcasterContext.addMiniApp()
 
     // Trigger success haptic feedback
     await terminalHaptics.success()

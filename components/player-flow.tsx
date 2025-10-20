@@ -33,7 +33,8 @@ export function PlayerFlow({ onBack, onGameComplete }: PlayerFlowProps) {
   const [playerId, setPlayerId] = useState<string | null>(null)
 
   const handleLoadGame = () => {
-    startTransition(async () => {
+    startTransition(() => {
+      (async () => {
       setError(null)
 
       // Get or create player
@@ -72,13 +73,15 @@ export function PlayerFlow({ onBack, onGameComplete }: PlayerFlowProps) {
 
       setGameData(game)
       setStep("playing")
+    })()
     })
   }
 
   const handleGuess = () => {
     if (!guess.trim() || !gameData || !playerId) return
 
-    startTransition(async () => {
+    startTransition(() => {
+      (async () => {
       setError(null)
 
       const { data: guessResult, error: guessError } = await submitGuess(gameData.id, playerId, guess)
@@ -124,6 +127,7 @@ export function PlayerFlow({ onBack, onGameComplete }: PlayerFlowProps) {
           setGuess("")
         }
       }
+    })()
     })
   }
 

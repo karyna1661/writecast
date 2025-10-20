@@ -43,61 +43,45 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
         setIsAvailable(available)
         
         if (available) {
-          // CRITICAL: Signal to Farcaster that the Mini App is ready
-          await farcasterSDK.actions.ready()
-          console.log("Farcaster Mini App ready!")
-          
-          // AUTOMATICALLY get user context from Farcaster
           try {
-            // Try to get user context from SDK
-            const context = await sdk.context
-            console.log("SDK context:", context)
+            // CRITICAL: Signal to Farcaster that the Mini App is ready
+            await farcasterSDK.actions.ready()
+            console.log("Farcaster Mini App ready!")
             
-            if (context?.user) {
-              const user: FarcasterUser = {
-                fid: context.user.fid,
-                username: context.user.username || `user-${context.user.fid}`,
-                displayName: context.user.displayName || context.user.username,
-              }
+            // AUTOMATICALLY get user context from Farcaster
+            try {
+              // Try to get user context from SDK first (most efficient)
+              const context = await sdk.context
+              console.log("SDK context:", context)
               
-              setAuth({
-                isAuthenticated: true,
-                user,
-                token: null, // Token can be fetched later if needed
-                isLoading: false,
-              })
-              console.log("Auto-authenticated user:", user.username)
-            } else {
-              // Fallback: try to get token and extract user info
-              console.log("No user context found, trying token auth...")
-              const tokenResult = await farcasterSDK.quickAuth.getToken()
-              console.log("Token result:", tokenResult)
-              
-              if (tokenResult?.token) {
-                // Mock user for now - in production, decode token to get real user info
-                const mockUser: FarcasterUser = {
-                  fid: 12345,
-                  username: "farcaster_user",
-                  displayName: "Farcaster User",
+              if (context?.user) {
+                const user: FarcasterUser = {
+                  fid: context.user.fid,
+                  username: context.user.username || `user-${context.user.fid}`,
+                  displayName: context.user.displayName || context.user.username || `user-${context.user.fid}`,
                 }
                 
                 setAuth({
                   isAuthenticated: true,
-                  user: mockUser,
-                  token: tokenResult.token,
+                  user,
+                  token: null, // Token can be fetched later if needed
                   isLoading: false,
                 })
-                console.log("Auto-authenticated with token:", mockUser.username)
+                console.log("Auto-authenticated user:", user.username)
               } else {
-                console.log("No token available, staying as guest")
+                console.log("No user context found, staying as guest")
                 setAuth(prev => ({ ...prev, isLoading: false }))
               }
+            } catch (contextError) {
+              console.warn("Could not get user context:", contextError)
+              setAuth(prev => ({ ...prev, isLoading: false }))
             }
-          } catch (contextError) {
-            console.warn("Could not get user context:", contextError)
+          } catch (readyError) {
+            console.warn("Failed to signal ready to Farcaster:", readyError)
             setAuth(prev => ({ ...prev, isLoading: false }))
           }
         } else {
+          console.log("Farcaster SDK not available - running in standalone mode")
           setAuth(prev => ({ ...prev, isLoading: false }))
         }
       } catch (error) {
@@ -106,7 +90,15 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    initSDK()
+    // Add a timeout to prevent infinite loading
+    const timeout = setTimeout(() => {
+      console.warn("SDK initialization timeout - proceeding without Farcaster")
+      setAuth(prev => ({ ...prev, isLoading: false }))
+    }, 3000) // Reduced timeout to 3 seconds
+
+    initSDK().finally(() => {
+      clearTimeout(timeout)
+    })
   }, [])
 
   const login = async () => {
@@ -233,7 +225,7 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
     success: async () => {
       try {
         if (!isFarcasterAvailable()) return
-        await farcasterSDK.haptics.notification("success")
+        await farcasterSDK.haptics.notificationOccurred("success")
       } catch (error) {
         console.error("Haptic feedback failed:", error)
       }
@@ -241,7 +233,7 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
     error: async () => {
       try {
         if (!isFarcasterAvailable()) return
-        await farcasterSDK.haptics.notification("error")
+        await farcasterSDK.haptics.notificationOccurred("error")
       } catch (error) {
         console.error("Haptic feedback failed:", error)
       }
@@ -249,7 +241,7 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
     warning: async () => {
       try {
         if (!isFarcasterAvailable()) return
-        await farcasterSDK.haptics.notification("warning")
+        await farcasterSDK.haptics.notificationOccurred("warning")
       } catch (error) {
         console.error("Haptic feedback failed:", error)
       }
@@ -257,7 +249,7 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
     light: async () => {
       try {
         if (!isFarcasterAvailable()) return
-        await farcasterSDK.haptics.impact("light")
+        await farcasterSDK.haptics.impactOccurred("light")
       } catch (error) {
         console.error("Haptic feedback failed:", error)
       }
@@ -265,7 +257,7 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
     medium: async () => {
       try {
         if (!isFarcasterAvailable()) return
-        await farcasterSDK.haptics.impact("medium")
+        await farcasterSDK.haptics.impactOccurred("medium")
       } catch (error) {
         console.error("Haptic feedback failed:", error)
       }
@@ -273,7 +265,7 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
     heavy: async () => {
       try {
         if (!isFarcasterAvailable()) return
-        await farcasterSDK.haptics.impact("heavy")
+        await farcasterSDK.haptics.impactOccurred("heavy")
       } catch (error) {
         console.error("Haptic feedback failed:", error)
       }

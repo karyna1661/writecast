@@ -38,11 +38,13 @@ GAME CREATION:
 
 GAMEPLAY:
   games
-    Browse available demo games
+    Browse available games you can play
   play <gameId>
     Start playing a game
   guess <word>
     Make a guess in the current game
+  invite @username
+    Invite a friend for help (grants 1 bonus attempt)
   reveal <gameId>
     View results and stats for a game
 
@@ -50,7 +52,7 @@ SOCIAL & SHARING:
   share <gameId>
     Share game to Farcaster
   invite @username
-    Invite user to mini app
+    Invite user to mini app (social)
   profile @user
     View Farcaster profile
 

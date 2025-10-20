@@ -27,8 +27,8 @@ export async function GET(
     // Return game metadata for sharing
     return NextResponse.json({
       gameCode: gameCode.toUpperCase(),
-      mode: game.mode,
-      masterpiece: game.masterpiece,
+      mode: game.game_type,
+      masterpiece: game.masterpiece_text,
       createdAt: game.created_at,
       authorId: game.author_id,
       // Don't expose the hidden word in metadata

@@ -130,6 +130,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
                       <TypewriterText
                         text={msg.content}
                         speed={15}
+                        key={`error-${i}-${msg.timestamp}`}
                         onProgress={(index) => {
                           setTypewriterProgress(prev => ({ ...prev, [i]: index }))
                         }}
@@ -149,6 +150,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
                     <TypewriterText
                       text={msg.content}
                       speed={15}
+                      key={`success-${i}-${msg.timestamp}`}
                       onProgress={(index) => {
                         setTypewriterProgress(prev => ({ ...prev, [i]: index }))
                       }}
@@ -166,6 +168,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
                       <TypewriterText 
                         text={msg.content} 
                         speed={15} 
+                        key={`output-${i}-${msg.timestamp}`}
                         onProgress={(index) => {
                           setTypewriterProgress(prev => ({ ...prev, [i]: index }))
                         }}

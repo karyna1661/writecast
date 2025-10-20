@@ -18,7 +18,8 @@ export function RevealFlow({ onBack }: RevealFlowProps) {
   const [error, setError] = useState<string | null>(null)
 
   const handleLoadStats = () => {
-    startTransition(async () => {
+    startTransition(() => {
+      (async () => {
       setError(null)
 
       const { data: game, error: gameError } = await revealGame(gameId)
@@ -29,6 +30,7 @@ export function RevealFlow({ onBack }: RevealFlowProps) {
       }
 
       setGameData(game)
+    })()
     })
   }
 

@@ -1,74 +1,96 @@
 import { sdk } from "@farcaster/miniapp-sdk"
 
+// Simple rate limiter to prevent too many SDK calls
+class RateLimiter {
+  private lastCall: number = 0
+  private minInterval: number = 100 // Minimum 100ms between calls
+
+  async throttle<T>(fn: () => Promise<T>): Promise<T> {
+    const now = Date.now()
+    const timeSinceLastCall = now - this.lastCall
+    
+    if (timeSinceLastCall < this.minInterval) {
+      await new Promise(resolve => setTimeout(resolve, this.minInterval - timeSinceLastCall))
+    }
+    
+    this.lastCall = Date.now()
+    return fn()
+  }
+}
+
+const rateLimiter = new RateLimiter()
+
 export interface FarcasterSDK {
   actions: {
-    signIn: () => Promise<void>
-    composeCast: (text: string) => Promise<void>
-    openMiniApp: (url: string) => Promise<void>
-    openUrl: (url: string) => Promise<void>
-    viewProfile: (username: string) => Promise<void>
-    setPrimaryButton: (config: { text: string; action: () => void }) => Promise<void>
-    addMiniApp: () => Promise<void>
-    close: () => Promise<void>
-    ready: () => Promise<void>
+    signIn: () => Promise<any>
+    composeCast: (text: string, options?: any) => Promise<any>
+    openMiniApp: (options: any) => Promise<any>
+    openUrl: (url: string) => Promise<any>
+    viewProfile: (options: any) => Promise<any>
+    setPrimaryButton: (config: { text: string; action: () => void }) => Promise<any>
+    addMiniApp: () => Promise<any>
+    close: () => Promise<any>
+    ready: () => Promise<any>
   }
   quickAuth: {
     getToken: () => Promise<{ token: string } | null>
     fetch: (url: string, options?: RequestInit) => Promise<Response>
   }
   haptics: {
-    impact: (style: "light" | "medium" | "heavy") => Promise<void>
-    notification: (type: "success" | "warning" | "error") => Promise<void>
+    impactOccurred: (style: "light" | "medium" | "heavy") => Promise<void>
+    notificationOccurred: (type: "success" | "warning" | "error") => Promise<void>
   }
   getChains: () => Promise<any[]>
 }
 
-// Safe SDK wrapper with error handling
+// Safe SDK wrapper with error handling and rate limiting
 export const farcasterSDK = {
   actions: {
     signIn: async () => {
       if (!isFarcasterAvailable()) throw new Error("SDK not available")
-      return await sdk.actions.signIn()
+      // Use loose typing to accommodate SDK signature variations
+      return await rateLimiter.throttle(() => (sdk as any).actions.signIn())
     },
-    composeCast: async (text: string) => {
+    composeCast: async (text: string, options?: any) => {
       if (!isFarcasterAvailable()) throw new Error("SDK not available")
-      return await sdk.actions.composeCast(text)
+      // Pass through both text and options if supported by the SDK
+      return await rateLimiter.throttle(() => (sdk as any).actions.composeCast(text, options))
     },
-    openMiniApp: async (url: string) => {
+    openMiniApp: async (options: any) => {
       if (!isFarcasterAvailable()) throw new Error("SDK not available")
-      return await sdk.actions.openMiniApp(url)
+      return await rateLimiter.throttle(() => (sdk as any).actions.openMiniApp(options))
     },
     openUrl: async (url: string) => {
       if (!isFarcasterAvailable()) throw new Error("SDK not available")
-      return await sdk.actions.openUrl(url)
+      return await rateLimiter.throttle(() => (sdk as any).actions.openUrl(url))
     },
-    viewProfile: async (username: string) => {
+    viewProfile: async (options: any) => {
       if (!isFarcasterAvailable()) throw new Error("SDK not available")
-      return await sdk.actions.viewProfile(username)
+      return await rateLimiter.throttle(() => (sdk as any).actions.viewProfile(options))
     },
     setPrimaryButton: async (config: { text: string; action: () => void }) => {
       if (!isFarcasterAvailable()) throw new Error("SDK not available")
-      return await sdk.actions.setPrimaryButton(config)
+      return await rateLimiter.throttle(() => (sdk as any).actions.setPrimaryButton(config))
     },
     addMiniApp: async () => {
       if (!isFarcasterAvailable()) throw new Error("SDK not available")
-      return await sdk.actions.addMiniApp()
+      return await rateLimiter.throttle(() => (sdk as any).actions.addMiniApp())
     },
     close: async () => {
       if (!isFarcasterAvailable()) throw new Error("SDK not available")
-      return await sdk.actions.close()
+      return await rateLimiter.throttle(() => (sdk as any).actions.close())
     },
     ready: async () => {
       if (!isFarcasterAvailable()) throw new Error("SDK not available")
-      return await sdk.actions.ready()
+      return await rateLimiter.throttle(() => (sdk as any).actions.ready())
     },
   },
   quickAuth: {
     getToken: async () => {
       if (!isFarcasterAvailable()) return null
       try {
-        const result = await sdk.quickAuth.getToken()
-        return result?.token ? { token: result.token } : null
+        const result: any = await rateLimiter.throttle(() => (sdk as any).quickAuth.getToken())
+        return result && typeof result.token === "string" ? { token: result.token } : null
       } catch (error) {
         console.warn("Failed to get token:", error)
         return null
@@ -76,22 +98,22 @@ export const farcasterSDK = {
     },
     fetch: async (url: string, options?: RequestInit) => {
       if (!isFarcasterAvailable()) throw new Error("SDK not available")
-      return await sdk.quickAuth.fetch(url, options)
+      return await rateLimiter.throttle(() => (sdk as any).quickAuth.fetch(url, options))
     },
   },
   haptics: {
-    impact: async (style: "light" | "medium" | "heavy") => {
+    impactOccurred: async (style: "light" | "medium" | "heavy") => {
       if (!isFarcasterAvailable()) return
       try {
-        return await sdk.haptics.impact(style)
+        return await rateLimiter.throttle(() => (sdk as any).haptics.impactOccurred(style))
       } catch (error) {
         console.warn("Haptic impact failed:", error)
       }
     },
-    notification: async (type: "success" | "warning" | "error") => {
+    notificationOccurred: async (type: "success" | "warning" | "error") => {
       if (!isFarcasterAvailable()) return
       try {
-        return await sdk.haptics.notification(type)
+        return await rateLimiter.throttle(() => (sdk as any).haptics.notificationOccurred(type))
       } catch (error) {
         console.warn("Haptic notification failed:", error)
       }
@@ -100,7 +122,7 @@ export const farcasterSDK = {
   getChains: async () => {
     if (!isFarcasterAvailable()) return []
     try {
-      return await sdk.getChains()
+      return await rateLimiter.throttle(() => (sdk as any).getChains())
     } catch (error) {
       console.warn("Failed to get chains:", error)
       return []
@@ -109,5 +131,16 @@ export const farcasterSDK = {
 } as FarcasterSDK
 
 export function isFarcasterAvailable(): boolean {
-  return typeof window !== "undefined" && typeof sdk !== "undefined" && sdk !== null
+  try {
+    return (
+      typeof window !== "undefined" && 
+      typeof sdk !== "undefined" && 
+      sdk !== null &&
+      sdk.actions &&
+      typeof sdk.actions.ready === "function"
+    )
+  } catch (error) {
+    console.warn("Error checking Farcaster availability:", error)
+    return false
+  }
 }

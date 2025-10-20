@@ -18,6 +18,7 @@ export interface Game {
   total_players: number
   successful_guesses: number
   failed_guesses: number
+  total_attempts: number
   created_at: string
 }
 
@@ -37,6 +38,8 @@ export interface GuessResult {
   attempt_number: number
   points_earned: number
   session_status: "in_progress" | "won" | "lost"
+  max_attempts?: number
+  can_invite?: boolean
   error?: string
 }
 
@@ -135,20 +138,76 @@ export async function getGameByCode(code: string) {
   return { data: data as Game, error: null }
 }
 
-export async function getAllGames() {
+export async function getAllGames(playerId?: string) {
   const supabase = await createClient()
 
+  if (!playerId) {
+    // Return all games if no player specified (for admin/debug purposes)
+    const { data, error } = await supabase
+      .from("games")
+      .select("*")
+      .eq("status", "active")
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      return { data: null, error: error.message }
+    }
+
+    return { data: data as Game[], error: null }
+  }
+
+  // Get available games for specific player (excludes completed and author-created)
   const { data, error } = await supabase
-    .from("games")
-    .select("*")
-    .eq("status", "active")
-    .order("created_at", { ascending: false })
+    .rpc("get_available_games", { p_player_id: playerId })
 
   if (error) {
     return { data: null, error: error.message }
   }
 
   return { data: data as Game[], error: null }
+}
+
+export async function getAvailableGames(playerId: string) {
+  return getAllGames(playerId)
+}
+
+export async function canPlayGame(gameId: string, playerId: string) {
+  const supabase = await createClient()
+
+  // Check if game exists and is active
+  const { data: game, error: gameError } = await supabase
+    .from("games")
+    .select("id, author_id")
+    .eq("id", gameId)
+    .eq("status", "active")
+    .single()
+
+  if (gameError || !game) {
+    return { canPlay: false, reason: "Game not found or inactive" }
+  }
+
+  // Check if player is the author
+  if (game.author_id === playerId) {
+    return { canPlay: false, reason: "You created this game" }
+  }
+
+  // Check if player has completed this game
+  const { data: session } = await supabase
+    .from("game_sessions")
+    .select("status")
+    .eq("game_id", gameId)
+    .eq("player_id", playerId)
+    .single()
+
+  if (session && session.status === "won") {
+    return { canPlay: false, reason: "You already completed this game" }
+  }
+
+  if (session && session.status === "lost") {
+    return { canPlay: false, reason: "You already completed this game" }
+  }
+
+  return { canPlay: true, reason: null }
 }
 
 export async function createGame(authorId: string, gameType: GameMode, masterpieceText: string, hiddenWord: string) {
@@ -291,4 +350,73 @@ export async function revealGame(gameCode: string) {
   }
 
   return { data: data as Game, error: null }
+}
+
+// ============================================================================
+// INVITE SYSTEM FUNCTIONS
+// ============================================================================
+
+export async function useGameInvite(gameId: string, playerId: string, invitedUsername: string) {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase.rpc("use_game_invite", {
+    p_game_id: gameId,
+    p_player_id: playerId,
+    p_invited_username: invitedUsername,
+  })
+
+  if (error) {
+    return { data: null, error: error.message }
+  }
+
+  return { data, error: null }
+}
+
+export async function acceptGameInvite(inviteId: string, invitedPlayerId: string) {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase.rpc("accept_game_invite", {
+    p_invite_id: inviteId,
+    p_invited_player_id: invitedPlayerId,
+  })
+
+  if (error) {
+    return { data: null, error: error.message }
+  }
+
+  return { data, error: null }
+}
+
+export async function getGameInviteStatus(gameId: string, playerId: string) {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from("game_invites")
+    .select("*")
+    .eq("game_id", gameId)
+    .eq("inviter_player_id", playerId)
+    .single()
+
+  if (error && error.code !== "PGRST116") {
+    return { data: null, error: error.message }
+  }
+
+  return { data, error: null }
+}
+
+export async function getPlayerGameSession(gameId: string, playerId: string) {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from("game_sessions")
+    .select("*")
+    .eq("game_id", gameId)
+    .eq("player_id", playerId)
+    .single()
+
+  if (error && error.code !== "PGRST116") {
+    return { data: null, error: error.message }
+  }
+
+  return { data, error: null }
 }

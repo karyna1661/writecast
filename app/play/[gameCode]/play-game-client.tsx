@@ -49,7 +49,11 @@ Type 'games' to see available games, or 'help' for commands.`,
         // Auto-start the game
         setGameState(prev => ({
           ...prev,
-          currentGame: game,
+          currentGame: {
+            hiddenWord: game.hidden_word,
+            masterpiece: game.masterpiece_text,
+            mode: game.game_type,
+          },
           currentGameId: gameCode.toUpperCase(),
           step: "playing",
           attempts: 0,
@@ -62,9 +66,9 @@ Type 'games' to see available games, or 'help' for commands.`,
 GAME LOADED: ${gameCode.toUpperCase()}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-${game.mode === "fill-blank" ? "FILL-IN-BLANK" : "FRAME-THE-WORD"} GAME
+${game.game_type === "fill-blank" ? "FILL-IN-BLANK" : "FRAME-THE-WORD"} GAME
 
-${game.masterpiece}
+${game.masterpiece_text}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 Type 'guess <word>' to make your first attempt!

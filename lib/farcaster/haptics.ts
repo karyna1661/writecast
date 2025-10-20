@@ -35,9 +35,10 @@ export class HapticManager {
 
     try {
       if (type === "success" || type === "error" || type === "warning") {
-        await farcasterSDK.haptics.notification(type)
+        // Align with SDK wrapper method names
+        await farcasterSDK.haptics.notificationOccurred(type)
       } else {
-        await farcasterSDK.haptics.impact(type)
+        await farcasterSDK.haptics.impactOccurred(type)
       }
     } catch (error) {
       console.warn("Haptic feedback failed:", error)
@@ -132,6 +133,11 @@ export class TerminalHaptics {
 
   async deepLinkOpened(): Promise<void> {
     await this.hapticManager.medium()
+  }
+
+  // Generic success haptic
+  async success(): Promise<void> {
+    await this.hapticManager.success()
   }
 }
 

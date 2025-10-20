@@ -25,8 +25,9 @@ export function AuthorFlow({ onBack, onGameCreated, mode }: AuthorFlowProps) {
   const [error, setError] = useState<string | null>(null)
 
   const handleCreateGame = () => {
-    startTransition(async () => {
-      setError(null)
+    startTransition(() => {
+      (async () => {
+        setError(null)
 
       // Validate inputs
       if (!hiddenWord.trim() || !masterpiece.trim()) {
@@ -61,6 +62,7 @@ export function AuthorFlow({ onBack, onGameCreated, mode }: AuthorFlowProps) {
       setGameId(newGameCode)
       setStep("created")
       onGameCreated(newGameCode)
+    })()
     })
   }
 
