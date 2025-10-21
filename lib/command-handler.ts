@@ -14,10 +14,40 @@ import {
   useGameInvite,
   getGameInviteStatus,
   getPlayerGameSession,
+  getPlayerStats,
 } from "@/lib/actions/game-actions"
 import { joinWaitlist, getWaitlistCount } from "@/lib/actions/waitlist-actions"
 import { useFarcaster } from "@/contexts/FarcasterContext"
 import { terminalHaptics } from "@/lib/farcaster/haptics"
+
+// Helper function to check if authentication is required
+function requiresAuth(
+  farcasterContext: any,
+  addMessage: (msg: CliMessage) => void,
+  action: string = "this action"
+): boolean {
+  if (!farcasterContext?.auth?.isAuthenticated) {
+    addMessage({
+      type: "error",
+      content: `🔒 Authentication Required
+
+You need to sign in with Farcaster to ${action}.
+
+Run 'login' to authenticate and unlock:
+  ✓ Game creation & authorship
+  ✓ Social sharing on Farcaster
+  ✓ Leaderboard rankings
+  ✓ Profile features
+
+Guests can still play all games!
+
+💡 Type 'login' to get started`,
+      timestamp: Date.now(),
+    })
+    return false
+  }
+  return true
+}
 
 // Helper function to get current user ID (authenticated or anonymous)
 function getCurrentUserId(farcasterContext?: any): string {
@@ -83,11 +113,11 @@ export async function handleCommand(
       break
 
     case "create":
-      handleCreate(args, rawArgs, gameState, setGameState, addMessage)
+      handleCreate(args, rawArgs, gameState, setGameState, addMessage, farcasterContext)
       break
 
     case "frame":
-      handleFrame(gameState, setGameState, addMessage)
+      handleFrame(gameState, setGameState, addMessage, farcasterContext)
       break
 
     case "write":
@@ -115,11 +145,11 @@ export async function handleCommand(
       break
 
     case "invite":
-      await handleInviteForHelp(rawArgs, gameState, setGameState, addMessage, farcasterContext)
+      await handleInvite(rawArgs, gameState, setGameState, addMessage, farcasterContext)
       break
 
     case "reveal":
-      await handleReveal(args, addMessage)
+      await handleReveal(args, addMessage, farcasterContext)
       break
 
     case "leaderboard":
@@ -153,7 +183,7 @@ export async function handleCommand(
       break
 
     case "invite":
-      await handleInvite(rawArgs, addMessage, farcasterContext)
+      await handleInvite(rawArgs, gameState, setGameState, addMessage, farcasterContext)
       break
 
     case "profile":
@@ -244,7 +274,13 @@ function handleCreate(
   gameState: GameState,
   setGameState: (state: GameState) => void,
   addMessage: (msg: CliMessage) => void,
+  farcasterContext?: any,
 ) {
+  // Check authentication
+  if (!requiresAuth(farcasterContext, addMessage, "create games")) {
+    return
+  }
+
   if (!rawArgs) {
     addMessage({
       type: "error",
@@ -273,7 +309,13 @@ function handleFrame(
   gameState: GameState,
   setGameState: (state: GameState) => void,
   addMessage: (msg: CliMessage) => void,
+  farcasterContext?: any,
 ) {
+  // Check authentication
+  if (!requiresAuth(farcasterContext, addMessage, "create games")) {
+    return
+  }
+
   setGameState({
     ...gameState,
     mode: "frame-word",
@@ -440,6 +482,11 @@ async function handleConfirm(
   addMessage: (msg: CliMessage) => void,
   farcasterContext?: any,
 ) {
+  // Check authentication
+  if (!requiresAuth(farcasterContext, addMessage, "publish games")) {
+    return
+  }
+
   if (!gameState.mode || !gameState.hiddenWord || !gameState.masterpiece) {
     addMessage({
       type: "error",
@@ -775,7 +822,7 @@ ${"━".repeat(60)}`,
   }
 }
 
-async function handleInviteForHelp(
+async function handleInvite(
   rawArgs: string,
   gameState: GameState,
   setGameState: (state: GameState) => void,
@@ -862,29 +909,54 @@ async function handleInviteForHelp(
     return
   }
 
-  // Trigger success haptic feedback
-  await terminalHaptics.success()
+  // Compose cast with embedded game
+  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"
+  const gameUrl = `${baseUrl}/?code=${gameState.currentGameId}`
+  
+  const castText = `${invitedUsername} I need your help! 🆘
 
-  addMessage({
-    type: "success",
-    content: `
-${"━".repeat(60)}
-INVITE SENT! 📞
-${"━".repeat(60)}
+Can you solve this word puzzle I'm stuck on?
+Game: ${gameState.currentGameId}
+
+If you win, we both earn points! 🎯`
+
+  try {
+    await farcasterContext.shareGame(gameState.currentGameId, "invite", {
+      text: castText,
+      embeds: [gameUrl],
+      mentionedUsers: [invitedUsername]
+    })
+
+    // Trigger success haptic feedback
+    await terminalHaptics.success()
+
+    addMessage({
+      type: "success",
+      content: `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+HELP REQUESTED! 📞
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Invited: ${invitedUsername}
 Game: ${gameState.currentGameId}
 
 You now have 4 total attempts!
-If ${invitedUsername} plays and wins, you'll earn 2 bonus points!
+If ${invitedUsername} wins, you both earn bonus points!
 
-${"━".repeat(60)}
-Continue playing: guess <word>`,
-    timestamp: Date.now(),
-  })
+Cast composed - share it now! 🚀
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
+      timestamp: Date.now(),
+    })
+  } catch (error) {
+    addMessage({
+      type: "error",
+      content: `Failed to compose cast: ${error instanceof Error ? error.message : "Unknown error"}`,
+      timestamp: Date.now(),
+    })
+  }
 }
 
-async function handleReveal(args: string[], addMessage: (msg: CliMessage) => void) {
+async function handleReveal(args: string[], addMessage: (msg: CliMessage) => void, farcasterContext?: any) {
   if (!args[0]) {
     addMessage({
       type: "error",
@@ -908,23 +980,103 @@ async function handleReveal(args: string[], addMessage: (msg: CliMessage) => voi
   }
 
   const successRate = game.total_players > 0 ? ((game.successful_guesses / game.total_players) * 100).toFixed(1) : "0.0"
+  
+  // Calculate game age
+  const now = new Date()
+  const created = new Date(game.created_at)
+  const ageHours = (now.getTime() - created.getTime()) / (1000 * 60 * 60)
+  const isExpired = ageHours >= 24
+  const remainingHours = Math.max(0, 24 - ageHours)
+  let reaction = ""
+  if (Number.parseFloat(successRate) < 30) reaction = "🔥 BRUTAL! "
+  else if (Number.parseFloat(successRate) < 50) reaction = "💪 TOUGH! "
+  else if (Number.parseFloat(successRate) > 80) reaction = "✨ POPULAR! "
+  else reaction = "🎯 BALANCED! "
+
+  // Check if current user is author or player
+  const userId = getCurrentUserId(farcasterContext)
+  const userInfo = getCurrentUserInfo(farcasterContext)
+  const isAuthor = farcasterContext?.auth?.isAuthenticated && 
+    game.author_id === userInfo.userId
+  
+  // Get user's session if they played this game
+  let yourSession = null
+  if (farcasterContext?.auth?.isAuthenticated) {
+    const { data: session } = await getPlayerGameSession(game.id, userId)
+    yourSession = session
+  }
+
+  let authorSection = ""
+  let playerSection = ""
+  let suggestionSection = ""
+  let answerSection = ""
+
+  if (isAuthor) {
+    authorSection = `
+🎨 YOU CREATED THIS GAME!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Your masterpiece stumped ${game.failed_guesses} players!
+Earnings: ${game.failed_guesses * 5} points
+
+${game.failed_guesses > 5 ? "🏆 Excellent difficulty!" : game.failed_guesses > 2 ? "👍 Good challenge!" : "💡 Consider making it harder!"}`
+    
+    if (game.total_players > 0) {
+      suggestionSection = `
+💡 Share this success: share ${gameId}`
+    }
+  } else if (yourSession) {
+    if (yourSession.status === "won") {
+      playerSection = `
+🎉 YOU SOLVED IT!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+You guessed it in ${yourSession.total_attempts} attempts!
+Points earned: ${yourSession.points_earned}
+
+${yourSession.total_attempts === 1 ? "🏆 Perfect! First try!" : "🎯 Well done!"}`
+    } else {
+      playerSection = `
+😅 YOU GAVE IT YOUR BEST!
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+You tried ${yourSession.total_attempts} times
+Points earned: ${yourSession.points_earned}
+
+Better luck next time!`
+    }
+  } else {
+    suggestionSection = `
+💡 Want to play? Type: play ${gameId}`
+  }
+
+  // Show answer only if game is expired
+  if (isExpired) {
+    answerSection = `
+🔓 ANSWER REVEALED:
+Hidden Word: ${game.hidden_word}
+
+Game completed after 24 hours`
+  } else {
+    answerSection = `
+✨ Answer will be revealed in ${remainingHours.toFixed(1)} hours`
+  }
+
+  const statusText = isExpired ? "Completed" : `Active (ends in ${remainingHours.toFixed(1)}h)`
 
   const stats = `
 ${"━".repeat(60)}
-GAME RESULTS: ${gameId}
+${reaction}GAME STATS: ${gameId}
 ${"━".repeat(60)}
 
-Hidden Word: ${game.hidden_word}
 Game Mode: ${game.game_type === "fill-blank" ? "Fill-in-Blank" : "Frame-the-Word"}
+Status: ${statusText}
 
 STATISTICS:
   Total Players: ${game.total_players}
-  Successful Guesses: ${game.successful_guesses} (${successRate}%)
-  Failed Attempts: ${game.failed_guesses} (${(100 - Number.parseFloat(successRate)).toFixed(1)}%)
+  Winners: ${game.successful_guesses} (${successRate}%)
+  Failed: ${game.failed_guesses} (${(100 - Number.parseFloat(successRate)).toFixed(1)}%)
   Total Attempts: ${game.total_attempts}
 
 AUTHOR EARNINGS: ${game.failed_guesses * 5} pts
-(5 points per failed guess)
+(5 points per failed guess)${authorSection}${playerSection}${suggestionSection}${answerSection}
 ${"━".repeat(60)}`
 
   addMessage({ type: "output", content: stats, timestamp: Date.now() })
@@ -1128,6 +1280,11 @@ function handleLogout(addMessage: (msg: CliMessage) => void, farcasterContext?: 
 }
 
 async function handleShare(args: string[], addMessage: (msg: CliMessage) => void, farcasterContext?: any) {
+  // Check authentication
+  if (!requiresAuth(farcasterContext, addMessage, "share games")) {
+    return
+  }
+
   if (!args[0]) {
     addMessage({
       type: "error",
@@ -1182,50 +1339,6 @@ Your game ${gameId} is now live on Farcaster!
   }
 }
 
-async function handleInvite(rawArgs: string, addMessage: (msg: CliMessage) => void, farcasterContext?: any) {
-  if (!rawArgs) {
-    addMessage({
-      type: "error",
-      content: "Usage: invite @username\nExample: invite @friend",
-      timestamp: Date.now(),
-    })
-    return
-  }
-
-  if (!farcasterContext) {
-    addMessage({
-      type: "error",
-      content: "Farcaster SDK not available.",
-      timestamp: Date.now(),
-    })
-    return
-  }
-
-  const username = rawArgs.trim()
-
-  try {
-    addMessage({
-      type: "output",
-      content: `[Opening mini app for @${username}...]`,
-      timestamp: Date.now(),
-    })
-
-    await farcasterContext.inviteUser(username)
-
-    addMessage({
-      type: "success",
-      content: `✓ Mini app opened for @${username}`,
-      timestamp: Date.now(),
-    })
-  } catch (error) {
-    addMessage({
-      type: "error",
-      content: `Failed to invite user: ${error instanceof Error ? error.message : "Unknown error"}`,
-      timestamp: Date.now(),
-    })
-  }
-}
-
 async function handleProfile(rawArgs: string, addMessage: (msg: CliMessage) => void, farcasterContext?: any) {
   if (!rawArgs) {
     addMessage({
@@ -1236,38 +1349,42 @@ async function handleProfile(rawArgs: string, addMessage: (msg: CliMessage) => v
     return
   }
 
-  if (!farcasterContext) {
+  const username = rawArgs.trim().replace('@', '')
+  
+  // Fetch user stats from database
+  const { data: user, error } = await getPlayerStats(username)
+
+  if (error || !user) {
     addMessage({
       type: "error",
-      content: "Farcaster SDK not available.",
+      content: `Player not found: @${username}\n\nThey may not have played Writecast yet.`,
       timestamp: Date.now(),
     })
     return
   }
 
-  const username = rawArgs.trim()
+  const winRate = user.total_games_played > 0 
+    ? ((user.total_games_won || 0) / user.total_games_played * 100).toFixed(1)
+    : "0.0"
 
-  try {
-    addMessage({
-      type: "output",
-      content: `[Opening profile for @${username}...]`,
-      timestamp: Date.now(),
-    })
+  const stats = `
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PLAYER STATS: @${username}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-    await farcasterContext.viewProfile(username)
+AS PLAYER:
+  Games Played: ${user.total_games_played}
+  Games Won: ${user.total_games_won || 0} (${winRate}% win rate)
+  Total Points: ${user.total_points_earned}
 
-    addMessage({
-      type: "success",
-      content: `✓ Profile opened for @${username}`,
-      timestamp: Date.now(),
-    })
-  } catch (error) {
-    addMessage({
-      type: "error",
-      content: `Failed to view profile: ${error instanceof Error ? error.message : "Unknown error"}`,
-      timestamp: Date.now(),
-    })
-  }
+AS AUTHOR:
+  Games Created: ${user.total_games_created}
+  Author Points: ${user.total_points_as_author}
+  
+OVERALL RANK: #${user.leaderboard_rank || 'Unranked'}
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
+
+  addMessage({ type: "output", content: stats, timestamp: Date.now() })
 }
 
 async function handleOpen(rawArgs: string, addMessage: (msg: CliMessage) => void, farcasterContext?: any) {

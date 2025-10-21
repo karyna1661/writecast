@@ -420,3 +420,19 @@ export async function getPlayerGameSession(gameId: string, playerId: string) {
 
   return { data, error: null }
 }
+
+export async function getPlayerStats(username: string) {
+  const supabase = await createClient()
+
+  const { data: user, error } = await supabase
+    .from('users')
+    .select('*')
+    .eq('farcaster_username', username)
+    .single()
+
+  if (error) {
+    return { data: null, error: error.message }
+  }
+
+  return { data: user, error: null }
+}

@@ -32,8 +32,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className="font-mono antialiased">
-      <body>
+    <html lang="en" className="font-mono antialiased" suppressHydrationWarning>
+      <body suppressHydrationWarning>
         <FarcasterProvider>
           {children}
         </FarcasterProvider>

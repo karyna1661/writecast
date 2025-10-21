@@ -7,10 +7,10 @@ interface UseTypewriterOptions {
   speed?: number
   onComplete?: () => void
   onProgress?: (index: number) => void
-  key?: string // Add key prop for stable identity
+  uniqueKey?: string // Add uniqueKey prop for stable identity
 }
 
-export function useTypewriter({ text, speed = 20, onComplete, onProgress, key }: UseTypewriterOptions) {
+export function useTypewriter({ text, speed = 20, onComplete, onProgress, uniqueKey }: UseTypewriterOptions) {
   const [displayedText, setDisplayedText] = useState("")
   const [currentIndex, setCurrentIndex] = useState(0)
   const [isComplete, setIsComplete] = useState(false)
@@ -19,8 +19,8 @@ export function useTypewriter({ text, speed = 20, onComplete, onProgress, key }:
   
   // Create a stable hash for the text to prevent unnecessary re-renders
   const textHash = useMemo(() => {
-    return key || `${text.length}-${text.slice(0, 10)}-${Date.now()}`
-  }, [text, key])
+    return uniqueKey || `${text.length}-${text.slice(0, 10)}-${Date.now()}`
+  }, [text, uniqueKey])
 
   useEffect(() => {
     // Clear any existing interval first

@@ -46,13 +46,17 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
           try {
             // CRITICAL: Signal to Farcaster that the Mini App is ready
             await farcasterSDK.actions.ready()
-            console.log("Farcaster Mini App ready!")
+            if (process.env.NODE_ENV === 'development') {
+              console.log("Farcaster Mini App ready!")
+            }
             
             // AUTOMATICALLY get user context from Farcaster
             try {
               // Try to get user context from SDK first (most efficient)
               const context = await sdk.context
-              console.log("SDK context:", context)
+              if (process.env.NODE_ENV === 'development') {
+                console.log("SDK context:", context)
+              }
               
               if (context?.user) {
                 const user: FarcasterUser = {
@@ -67,9 +71,13 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
                   token: null, // Token can be fetched later if needed
                   isLoading: false,
                 })
-                console.log("Auto-authenticated user:", user.username)
+                if (process.env.NODE_ENV === 'development') {
+                  console.log("Auto-authenticated user:", user.username)
+                }
               } else {
-                console.log("No user context found, staying as guest")
+                if (process.env.NODE_ENV === 'development') {
+                  console.log("No user context found, staying as guest")
+                }
                 setAuth(prev => ({ ...prev, isLoading: false }))
               }
             } catch (contextError) {
@@ -159,7 +167,7 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
-  const shareGame = async (gameCode: string, template: "created" | "won" | "invite") => {
+  const shareGame = async (gameCode: string, template: "created" | "won" | "invite", options?: any) => {
     try {
       if (!isFarcasterAvailable()) {
         throw new Error("Farcaster SDK not available")
@@ -177,13 +185,15 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
           text = `I just won a word game on Writecast! 🎉\n\nGame: ${gameCode}\nPlay it yourself and see if you can beat my score! 🏆`
           break
         case "invite":
-          text = `Join me in this word game on Writecast! 🎮\n\nGame: ${gameCode}\nLet's see who's smarter! 🧠`
+          // Use custom text/embeds from options if provided
+          text = options?.text || `Join me in this word game! 🎮\n\nGame: ${gameCode}`
           break
       }
 
       // Compose cast with text and embed URL for Frame
       await farcasterSDK.actions.composeCast(text, {
-        embeds: [playUrl]
+        embeds: options?.embeds || [playUrl],
+        ...options
       })
     } catch (error) {
       console.error("Failed to share game:", error)

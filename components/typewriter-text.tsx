@@ -8,16 +8,17 @@ interface TypewriterTextProps {
   onComplete?: () => void
   onProgress?: (index: number) => void
   className?: string
-  key?: string
+  uniqueKey?: string
 }
 
-export function TypewriterText({ text, speed = 20, onComplete, onProgress, className = "", key }: TypewriterTextProps) {
+export function TypewriterText({ text, speed = 20, onComplete, onProgress, className = "", uniqueKey }: TypewriterTextProps) {
   // Don't render if text is empty or undefined
   if (!text || text.length === 0) {
     return null
   }
 
-  const { displayedText, isComplete } = useTypewriter({ text, speed, onComplete, onProgress, key })
+  const { displayedText, isComplete } = useTypewriter({ text, speed, onComplete, onProgress, uniqueKey })
+
 
   return (
     <span className={className}>

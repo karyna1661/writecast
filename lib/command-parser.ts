@@ -22,7 +22,7 @@ export const HELP_TEXT = `
 Available Commands:
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-GAME CREATION:
+GAME CREATION: (🔒 Requires Authentication)
   create <word>
     Start creating a fill-in-blank game
   frame
@@ -36,7 +36,7 @@ GAME CREATION:
   confirm
     Publish your game and get a game ID
 
-GAMEPLAY:
+GAMEPLAY: (Available to Everyone)
   games
     Browse available games you can play
   play <gameId>
@@ -45,16 +45,17 @@ GAMEPLAY:
     Make a guess in the current game
   invite @username
     Invite a friend for help (grants 1 bonus attempt)
+    Composes cast with embedded game for easy sharing
   reveal <gameId>
-    View results and stats for a game
+    View game stats & your progress
+    (Answer revealed after 24 hours)
 
-SOCIAL & SHARING:
+SOCIAL & SHARING: (🔒 Requires Authentication)
   share <gameId>
-    Share game to Farcaster
-  invite @username
-    Invite user to mini app (social)
-  profile @user
-    View Farcaster profile
+    Share game to Farcaster with embedded play button
+
+profile @user (Available to Everyone)
+    View player's Writecast stats and achievements
 
 AUTHENTICATION:
   login
