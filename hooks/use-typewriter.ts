@@ -16,10 +16,26 @@ export function useTypewriter({ text, speed = 20, onComplete, onProgress, unique
   const [isComplete, setIsComplete] = useState(false)
   const intervalRef = useRef<NodeJS.Timeout | null>(null)
   const isInitializedRef = useRef(false)
+  const prevTextRef = useRef<string>("")
+  const onCompleteRef = useRef(onComplete)
+  const onProgressRef = useRef(onProgress)
+  
+  // Update refs when callbacks change
+  useEffect(() => {
+    onCompleteRef.current = onComplete
+    onProgressRef.current = onProgress
+  })
   
   // Create a stable hash for the text to prevent unnecessary re-renders
   const textHash = useMemo(() => {
-    return uniqueKey || `${text.length}-${text.slice(0, 10)}-${Date.now()}`
+    if (uniqueKey) return uniqueKey
+    
+    // For texts without uniqueKey, create a stable hash
+    const safeText = text || ""
+    if (safeText.length <= 40) {
+      return safeText // Short texts: use full text as key  
+    }
+    return `${safeText.length}-${safeText.slice(0, 20)}-${safeText.slice(-20)}`
   }, [text, uniqueKey])
 
   useEffect(() => {
@@ -28,6 +44,14 @@ export function useTypewriter({ text, speed = 20, onComplete, onProgress, unique
       clearInterval(intervalRef.current)
       intervalRef.current = null
     }
+    
+    // Check if text actually changed and animation is already complete
+    if (prevTextRef.current === text && isComplete && displayedText === text) {
+      // Same text, already complete and displayed - don't re-run
+      return
+    }
+    
+    prevTextRef.current = text
     
     // Reset state for new text
     setDisplayedText("")
@@ -38,7 +62,7 @@ export function useTypewriter({ text, speed = 20, onComplete, onProgress, unique
     // Don't start if text is empty
     if (!text || text.length === 0) {
       setIsComplete(true)
-      onComplete?.()
+      onCompleteRef.current?.()
       return
     }
     
@@ -61,7 +85,7 @@ export function useTypewriter({ text, speed = 20, onComplete, onProgress, unique
         setCurrentIndex(index + 1)
         
         // Call progress callback for scroll tracking
-        onProgress?.(index + 1)
+        onProgressRef.current?.(index + 1)
         
         index++
       } else {
@@ -70,7 +94,7 @@ export function useTypewriter({ text, speed = 20, onComplete, onProgress, unique
           clearInterval(intervalRef.current)
           intervalRef.current = null
         }
-        onComplete?.()
+        onCompleteRef.current?.()
       }
     }, speed)
 
@@ -81,7 +105,7 @@ export function useTypewriter({ text, speed = 20, onComplete, onProgress, unique
         intervalRef.current = null
       }
     }
-  }, [textHash, speed]) // Use textHash instead of text
+  }, [text, speed])
   
   return { displayedText, currentIndex, isComplete }
 }

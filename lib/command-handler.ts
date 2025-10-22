@@ -204,11 +204,20 @@ export async function handleCommand(
       break
 
     default:
+      // Check if user is in an active game and typed a word (likely meant to guess)
+      if (gameState.currentGame && gameState.step === "playing" && command && !command.startsWith('/')) {
       addMessage({
         type: "error",
-        content: `Unknown command: '${command}'. Type 'help' for available commands.`,
+          content: `💡 Hint: Did you mean 'guess ${command}'?\n\nUse 'guess <word>' to submit your answer.`,
+          timestamp: Date.now(),
+        })
+      } else {
+        addMessage({
+          type: "error",
+          content: `Unknown command: '${command}'.\n\nType 'help' for available commands.`,
         timestamp: Date.now(),
       })
+      }
   }
 }
 
@@ -589,21 +598,6 @@ async function handlePlay(
 
   const gameId = args[0].toUpperCase()
 
-  // Get current user ID for validation
-  const userId = getCurrentUserId(farcasterContext)
-  
-  // Check if player can play this game
-  const { canPlay, reason } = await canPlayGame(gameId, userId)
-  
-  if (!canPlay) {
-    addMessage({
-      type: "error",
-      content: `${reason}\n\nType 'games' to see available games you can play!`,
-      timestamp: Date.now(),
-    })
-    return
-  }
-
   const { data: game, error } = await getGameByCode(gameId)
 
   if (error || !game) {
@@ -622,6 +616,27 @@ async function handlePlay(
     addMessage({
       type: "error",
       content: "Failed to initialize player. Please try again.",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  // Check if player is the author
+  if (game.author_id === user.id) {
+    addMessage({
+      type: "error",
+      content: "You created this game\n\nType 'games' to see available games you can play!",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  // Check if player has already completed this game  
+  const { data: existingSession } = await getPlayerGameSession(game.id, user.id)
+  if (existingSession && (existingSession.status === "won" || existingSession.status === "lost")) {
+    addMessage({
+      type: "error",
+      content: "You already completed this game\n\nType 'games' to see available games you can play!",
       timestamp: Date.now(),
     })
     return
@@ -721,6 +736,8 @@ async function handleGuess(
   // Submit guess
   const { data: result, error: guessError } = await submitGuess(game.id, user.id, rawArgs)
 
+  console.log("[DEBUG] submitGuess result:", result)
+
   if (guessError || !result) {
     addMessage({
       type: "error",
@@ -806,11 +823,17 @@ ${"━".repeat(60)}`,
         })
 
         const remainingAttempts = (result.max_attempts || 3) - result.attempt_number
-        let message = `Incorrect! Attempts remaining: ${remainingAttempts}/${result.max_attempts || 3}\nTry again: guess <word>`
+        console.log("[DEBUG] Attempts calculation:", {
+          attempt_number: result.attempt_number,
+          max_attempts: result.max_attempts,
+          remainingAttempts,
+          gameStateAttempts: gameState.attempts
+        })
+        let message = `Incorrect! Attempts: ${result.attempt_number}/${result.max_attempts || 3}\nAttempts remaining: ${remainingAttempts}\nTry again: guess <word>`
         
-        // Show invite prompt if on 3rd attempt and haven't used invite
-        if (result.attempt_number === 3 && result.can_invite) {
-          message += `\n\n💡 You have 1 attempt left! Use 'invite @friend' for 1 bonus attempt!`
+        // Show invite prompt if on 3rd wrong attempt and haven't used invite
+        if (result.attempt_number === 3 && result.can_invite && farcasterContext?.auth?.isAuthenticated) {
+          message += `\n\n💡 Out of attempts! Use 'invite @friend' to get 1 bonus attempt and keep playing!`
         }
 
         addMessage({
@@ -829,6 +852,11 @@ async function handleInvite(
   addMessage: (msg: CliMessage) => void,
   farcasterContext?: any,
 ) {
+  // Check authentication first
+  if (!requiresAuth(farcasterContext, addMessage, "invite friends and share on Farcaster")) {
+    return
+  }
+
   if (!gameState.currentGame) {
     addMessage({
       type: "error",
@@ -927,12 +955,12 @@ If you win, we both earn points! 🎯`
       mentionedUsers: [invitedUsername]
     })
 
-    // Trigger success haptic feedback
-    await terminalHaptics.success()
+  // Trigger success haptic feedback
+  await terminalHaptics.success()
 
-    addMessage({
-      type: "success",
-      content: `
+  addMessage({
+    type: "success",
+    content: `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 HELP REQUESTED! 📞
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -951,8 +979,8 @@ Cast composed - share it now! 🚀
     addMessage({
       type: "error",
       content: `Failed to compose cast: ${error instanceof Error ? error.message : "Unknown error"}`,
-      timestamp: Date.now(),
-    })
+    timestamp: Date.now(),
+  })
   }
 }
 

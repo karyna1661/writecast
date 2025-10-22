@@ -24,6 +24,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
   const [isInputEnabled, setIsInputEnabled] = useState(false)
   const [isUserScrolling, setIsUserScrolling] = useState(false)
   const [typewriterProgress, setTypewriterProgress] = useState<Record<number, number>>({})
+  const [lastStreamedIndex, setLastStreamedIndex] = useState(-1)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -61,31 +62,40 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
   }, [])
 
   useEffect(() => {
-    if (messages.length > 0) {
-      const lastMessageIndex = messages.length - 1
-      const lastMessage = messages[lastMessageIndex]
-
-      // Only stream non-command messages
-      if (lastMessage.type !== "command") {
-        setStreamingIndex(lastMessageIndex)
-        setIsInputEnabled(false)
-      } else {
-        // Commands are instant, enable input immediately
-        setIsInputEnabled(true)
-        setTimeout(() => {
-          inputRef.current?.focus()
-        }, 100)
-      }
+    // If currently streaming, wait for it to complete
+    if (streamingIndex !== -1) {
+      return
     }
-  }, [messages])
+    
+    // Find the next message that needs to be streamed
+    const nextIndex = lastStreamedIndex + 1
+    
+    if (nextIndex < messages.length) {
+      const nextMessage = messages[nextIndex]
+      
+      if (nextMessage.type === "command") {
+        // Commands don't stream - mark as completed and move to next
+        setLastStreamedIndex(nextIndex)
+      } else {
+        // Start streaming this message
+        setStreamingIndex(nextIndex)
+        setIsInputEnabled(false)
+      }
+    } else {
+      // All messages have been streamed
+      setIsInputEnabled(true)
+      setTimeout(() => {
+        inputRef.current?.focus()
+      }, 100)
+    }
+  }, [messages, streamingIndex, lastStreamedIndex])
 
   const handleStreamComplete = () => {
+    // Mark current message as streamed
+    setLastStreamedIndex(streamingIndex)
+    // Clear streaming state to allow next message
     setStreamingIndex(-1)
-    setIsInputEnabled(true)
-    // Focus input after streaming completes
-    setTimeout(() => {
-      inputRef.current?.focus()
-    }, 100)
+    // Don't enable input yet - let the useEffect handle the queue
   }
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -114,7 +124,8 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
       >
         {messages.map((msg, i) => {
           const isStreaming = i === streamingIndex
-          const shouldStream = msg.type !== "command" && isStreaming
+          const hasAlreadyStreamed = i <= lastStreamedIndex
+          const shouldUseTypewriter = msg.type !== "command" && (isStreaming || hasAlreadyStreamed)
 
           return (
             <div key={i} className="space-y-1 overflow-hidden">
@@ -124,7 +135,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
                 </TerminalPrompt>
               ) : msg.type === "error" ? (
                 <div className="pl-1 xs:pl-2 sm:pl-4 text-terminal-red text-[10px] xs:text-xs sm:text-sm">
-                  {shouldStream ? (
+                  {shouldUseTypewriter ? (
                     <>
                       <span className="text-terminal-red">ERROR:</span>{" "}
                       <TypewriterText
@@ -146,7 +157,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
                 </div>
               ) : msg.type === "success" ? (
                 <div className="pl-1 xs:pl-2 sm:pl-4 text-terminal-green text-[10px] xs:text-xs sm:text-sm break-words">
-                  {shouldStream ? (
+                  {shouldUseTypewriter ? (
                     <TypewriterText
                       text={msg.content}
                       speed={15}
@@ -164,7 +175,7 @@ export function CliTerminal({ onCommand, messages, placeholder = "help for comma
               ) : (
                 <div className="pl-1 xs:pl-2 sm:pl-4 text-terminal-text text-[10px] xs:text-xs sm:text-sm whitespace-pre-wrap break-words">
                   <div className="[text-indent:-2rem] pl-8">
-                    {shouldStream ? (
+                    {shouldUseTypewriter ? (
                       <TypewriterText 
                         text={msg.content} 
                         speed={15} 

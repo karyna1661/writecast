@@ -76,7 +76,7 @@ export async function getOrCreateUser(userInfo: string | { userId: string; usern
     } else if (userInfo.userId === "anonymous_user") {
       farcasterUsername = "anonymous"
       displayName = "Anonymous"
-      farcasterId = `anon_${Date.now()}`
+      farcasterId = "anonymous_user"  // ← FIXED: Use stable ID
     }
   } else if (typeof userInfo === "string") {
     // Legacy string format
@@ -88,11 +88,11 @@ export async function getOrCreateUser(userInfo: string | { userId: string; usern
     } else if (userInfo === "demo_player") {
       farcasterUsername = "demo_player"
       displayName = "Demo Player"
-      farcasterId = `demo_${Date.now()}`
+      farcasterId = "demo_player"  // ← FIXED: Use stable ID
     } else {
       farcasterUsername = "anonymous"
       displayName = "Anonymous"
-      farcasterId = `anon_${Date.now()}`
+      farcasterId = "anonymous_user"  // ← FIXED: Use stable ID
     }
   }
 
