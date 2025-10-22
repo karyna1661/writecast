@@ -45,12 +45,21 @@ export const metadata = {
     "mobile-web-app-capable": "yes",
     "farcaster:app": "writecast",
     "farcaster:app_url": "https://writecast-1.vercel.app",
-    // Frame-style fallback meta
-    'fc:frame': 'vNext',
-    'fc:frame:image': 'https://writecast-1.vercel.app/og-image.png',
-    'fc:frame:button:1': 'Play Now',
-    'fc:frame:button:1:action': 'post',
-    'fc:frame:button:1:target': 'https://writecast-1.vercel.app',
+    // Mini App embed metadata
+    'fc:miniapp': JSON.stringify({
+      version: "1",
+      imageUrl: "https://writecast-1.vercel.app/og-image.png",
+      button: {
+        title: "Play Now",
+        action: {
+          type: "launch_frame",
+          name: "Writecast",
+          url: "https://writecast-1.vercel.app",
+          splashImageUrl: "https://writecast-1.vercel.app/og-image.png",
+          splashBackgroundColor: "#0a1628"
+        }
+      }
+    })
   },
 }
 

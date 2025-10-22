@@ -8,30 +8,15 @@ export async function GET() {
       signature: "",
     },
     frame: {
-      version: '1',
-      name: 'Writecast',
+      version: "1",
+      name: "Writecast",
       iconUrl: `${baseUrl}/icon-512.png`,
-      splashImageUrl: `${baseUrl}/og-image.png`,
-      splashBackgroundColor: '#0a1628',
       homeUrl: baseUrl,
       imageUrl: `${baseUrl}/og-image.png`,
-      button: {
-        title: 'Play Now',
-        action: {
-          type: 'post',
-          name: 'Writecast',
-          url: baseUrl,
-          splashImageUrl: `${baseUrl}/og-image.png`,
-          splashBackgroundColor: '#0a1628',
-        },
-      },
-      webhookUrl: `${baseUrl}/api/farcaster/webhook`,
-    },
-    creator: {
-      fid: 'thatweb3guy',
-      username: 'thatweb3guy',
-      displayName: 'thatweb3guy',
-    },
+      buttonTitle: "Play Now",
+      splashImageUrl: `${baseUrl}/og-image.png`,
+      splashBackgroundColor: "#0a1628"
+    }
   }
 
   return new Response(JSON.stringify(manifest), {
