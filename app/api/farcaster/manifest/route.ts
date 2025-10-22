@@ -16,6 +16,11 @@ export async function GET() {
       buttonTitle: "Play Now",
       splashImageUrl: `${baseUrl}/og-image.png`,
       splashBackgroundColor: "#0a1628"
+    },
+    creator: {
+      fid: "thatweb3guy",
+      username: "thatweb3guy",
+      displayName: "thatweb3guy"
     }
   }
 
