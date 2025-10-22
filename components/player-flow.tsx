@@ -4,8 +4,8 @@ import { useState, useTransition } from "react"
 import { TerminalPrompt } from "@/components/terminal-prompt"
 import { TerminalButton } from "@/components/terminal-button"
 import { TerminalInput } from "@/components/terminal-input"
-import { getGameByCode, submitGuess, getOrCreateUser, getGameSession } from "@/lib/actions/game-actions"
-import type { Game } from "@/lib/actions/game-actions"
+import { getGameByCode, submitGuess, getOrCreateUser, getGameSession } from "@/lib/actions/game-actions-client"
+import type { Game } from "@/lib/actions/game-actions-client"
 
 interface PlayerFlowProps {
   onBack: () => void

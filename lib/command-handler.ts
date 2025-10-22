@@ -15,8 +15,8 @@ import {
   getGameInviteStatus,
   getPlayerGameSession,
   getPlayerStats,
-} from "@/lib/actions/game-actions"
-import { joinWaitlist, getWaitlistCount } from "@/lib/actions/waitlist-actions"
+} from "@/lib/actions/game-actions-client"
+import { joinWaitlist, getWaitlistCount } from "@/lib/actions/waitlist-actions-client"
 import { useFarcaster } from "@/contexts/FarcasterContext"
 import { terminalHaptics } from "@/lib/farcaster/haptics"
 
@@ -587,35 +587,20 @@ async function handlePlay(
     return
   }
 
-  const gameId = args[0].toUpperCase()
+  const gameCode = args[0].toUpperCase()
 
-  // Get current user ID for validation
-  const userId = getCurrentUserId(farcasterContext)
-  
-  // Check if player can play this game
-  const { canPlay, reason } = await canPlayGame(gameId, userId)
-  
-  if (!canPlay) {
+  // Load game by code first
+  const { data: game, error: loadError } = await getGameByCode(gameCode)
+  if (loadError || !game) {
     addMessage({
       type: "error",
-      content: `${reason}\n\nType 'games' to see available games you can play!`,
+      content: `Game not found or inactive: ${gameCode}\n\nType 'games' to see all available games!",
       timestamp: Date.now(),
     })
     return
   }
 
-  const { data: game, error } = await getGameByCode(gameId)
-
-  if (error || !game) {
-    addMessage({
-      type: "error",
-      content: `Game not found: ${gameId}\n\nType 'games' to see all available games!`,
-      timestamp: Date.now(),
-    })
-    return
-  }
-
-  // Get or create player
+  // Resolve actual player (UUID) for correct checks
   const userInfo = getCurrentUserInfo(farcasterContext)
   const { data: user, error: userError } = await getOrCreateUser(userInfo)
   if (userError || !user) {
@@ -627,10 +612,32 @@ async function handlePlay(
     return
   }
 
+  // Author cannot play own game
+  if (game.author_id === user.id) {
+    addMessage({
+      type: "error",
+      content: "You created this game\n\nType 'games' to see available games you can play!",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  // Check if player already completed this game
+  const { data: existingSession } = await getPlayerGameSession(game.id, user.id)
+  if (existingSession && (existingSession.status === "won" || existingSession.status === "lost")) {
+    addMessage({
+      type: "error",
+      content: "You already completed this game\n\nType 'games' to see available games you can play!",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  // Initialize local state for gameplay
   setGameState({
     ...gameState,
     step: "playing",
-    currentGameId: gameId,
+    currentGameId: gameCode,
     currentGame: {
       hiddenWord: game.hidden_word,
       masterpiece: game.masterpiece_text,
@@ -643,7 +650,7 @@ async function handlePlay(
 
   let gameText = `
 ${"━".repeat(60)}
-GAME LOADED: ${gameId} (${modeText})
+GAME LOADED: ${gameCode} (${modeText})
 ${"━".repeat(60)}
 
 `
@@ -927,12 +934,12 @@ If you win, we both earn points! 🎯`
       mentionedUsers: [invitedUsername]
     })
 
-    // Trigger success haptic feedback
-    await terminalHaptics.success()
+  // Trigger success haptic feedback
+  await terminalHaptics.success()
 
-    addMessage({
-      type: "success",
-      content: `
+  addMessage({
+    type: "success",
+    content: `
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 HELP REQUESTED! 📞
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -951,8 +958,8 @@ Cast composed - share it now! 🚀
     addMessage({
       type: "error",
       content: `Failed to compose cast: ${error instanceof Error ? error.message : "Unknown error"}`,
-      timestamp: Date.now(),
-    })
+    timestamp: Date.now(),
+  })
   }
 }
 

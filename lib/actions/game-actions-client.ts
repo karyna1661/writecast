@@ -1,6 +1,6 @@
-"use server"
+"use client"
 
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@/lib/supabase/client"
 import type { GameMode } from "@/lib/game-state"
 
 // ============================================================================
@@ -20,35 +20,47 @@ export interface Game {
   failed_guesses: number
   total_attempts: number
   created_at: string
+  expires_at?: string
 }
 
 export interface GameSession {
   id: string
   game_id: string
   player_id: string
-  status: "in_progress" | "won" | "lost"
+  status: "playing" | "won" | "lost"
   total_attempts: number
   points_earned: number
-  started_at: string
-  completed_at: string | null
+  created_at: string
+  updated_at: string
 }
 
-export interface GuessResult {
+export interface GameAttempt {
+  id: string
+  game_id: string
+  player_id: string
+  guess: string
   is_correct: boolean
   attempt_number: number
-  points_earned: number
-  session_status: "in_progress" | "won" | "lost"
-  max_attempts?: number
-  can_invite?: boolean
-  error?: string
+  created_at: string
+}
+
+export interface User {
+  id: string
+  farcaster_username: string
+  display_name: string
+  farcaster_id: string
+  total_points_earned: number
+  total_games_played: number
+  total_games_won: number
+  total_games_created: number
+  total_points_as_author: number
+  created_at: string
 }
 
 export interface LeaderboardEntry {
-  id: string
-  farcaster_username: string | null
-  display_name: string | null
-  total_points_earned?: number
-  total_points_as_author?: number
+  farcaster_username: string
+  display_name: string
+  total_points_earned: number
   total_games_played?: number
   total_games_created?: number
   rank: number
@@ -59,7 +71,7 @@ export interface LeaderboardEntry {
 // ============================================================================
 
 export async function getOrCreateUser(userInfo: string | { userId: string; username?: string; displayName?: string } = "demo_player") {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   // Parse userInfo to extract Farcaster data
   let farcasterUsername = "demo_player"
@@ -122,7 +134,7 @@ export async function getOrCreateUser(userInfo: string | { userId: string; usern
 // ============================================================================
 
 export async function getGameByCode(code: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { data, error } = await supabase
     .from("games")
@@ -139,7 +151,7 @@ export async function getGameByCode(code: string) {
 }
 
 export async function getAllGames(playerId?: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   if (!playerId) {
     // Return all games if no player specified (for admin/debug purposes)
@@ -168,11 +180,12 @@ export async function getAllGames(playerId?: string) {
 }
 
 export async function getAvailableGames(playerId: string) {
-  return getAllGames(playerId)
+  // This function is not implemented yet
+  return { data: null, error: "Function not implemented" }
 }
 
 export async function canPlayGame(gameId: string, playerId: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   // Check if game exists and is active
   const { data: game, error: gameError } = await supabase
@@ -211,7 +224,7 @@ export async function canPlayGame(gameId: string, playerId: string) {
 }
 
 export async function createGame(authorId: string, gameType: GameMode, masterpieceText: string, hiddenWord: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   // Call the database function to generate a unique code
   const { data, error } = await supabase.rpc("create_game", {
@@ -234,7 +247,7 @@ export async function createGame(authorId: string, gameType: GameMode, masterpie
 // ============================================================================
 
 export async function getGameSession(gameId: string, playerId: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { data, error } = await supabase
     .from("game_sessions")
@@ -252,9 +265,8 @@ export async function getGameSession(gameId: string, playerId: string) {
 }
 
 export async function submitGuess(gameId: string, playerId: string, guess: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
-  // Call the database function to handle the guess logic
   const { data, error } = await supabase.rpc("submit_guess", {
     p_game_id: gameId,
     p_player_id: playerId,
@@ -265,11 +277,11 @@ export async function submitGuess(gameId: string, playerId: string, guess: strin
     return { data: null, error: error.message }
   }
 
-  return { data: data as GuessResult, error: null }
+  return { data: data, error: null }
 }
 
 export async function getGameAttempts(gameId: string, playerId: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { data, error } = await supabase
     .from("game_attempts")
@@ -282,82 +294,15 @@ export async function getGameAttempts(gameId: string, playerId: string) {
     return { data: null, error: error.message }
   }
 
-  return { data: data, error: null }
+  return { data: data as GameAttempt[], error: null }
 }
 
 // ============================================================================
-// LEADERBOARD OPERATIONS
-// ============================================================================
-
-export async function getPlayerLeaderboard(limit = 10) {
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from("users")
-    .select("id, farcaster_username, display_name, total_points_earned, total_games_played")
-    .gt("total_games_played", 0)
-    .order("total_points_earned", { ascending: false })
-    .limit(limit)
-
-  if (error) {
-    return { data: null, error: error.message }
-  }
-
-  // Add rank
-  const rankedData = data.map((user, index) => ({
-    ...user,
-    rank: index + 1,
-  }))
-
-  return { data: rankedData as LeaderboardEntry[], error: null }
-}
-
-export async function getAuthorLeaderboard(limit = 10) {
-  const supabase = await createClient()
-
-  const { data, error } = await supabase
-    .from("users")
-    .select("id, farcaster_username, display_name, total_points_as_author, total_games_created")
-    .gt("total_games_created", 0)
-    .order("total_points_as_author", { ascending: false })
-    .limit(limit)
-
-  if (error) {
-    return { data: null, error: error.message }
-  }
-
-  // Add rank
-  const rankedData = data.map((user, index) => ({
-    ...user,
-    rank: index + 1,
-  }))
-
-  return { data: rankedData as LeaderboardEntry[], error: null }
-}
-
-// ============================================================================
-// REVEAL OPERATIONS
-// ============================================================================
-
-export async function revealGame(gameCode: string) {
-  const supabase = await createClient()
-
-  // Get game with full details including hidden word
-  const { data, error } = await supabase.from("games").select("*").eq("game_code", gameCode.toUpperCase()).single()
-
-  if (error) {
-    return { data: null, error: error.message }
-  }
-
-  return { data: data as Game, error: null }
-}
-
-// ============================================================================
-// INVITE SYSTEM FUNCTIONS
+// INVITE OPERATIONS
 // ============================================================================
 
 export async function useGameInvite(gameId: string, playerId: string, invitedUsername: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { data, error } = await supabase.rpc("use_game_invite", {
     p_game_id: gameId,
@@ -373,7 +318,7 @@ export async function useGameInvite(gameId: string, playerId: string, invitedUse
 }
 
 export async function acceptGameInvite(inviteId: string, invitedPlayerId: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { data, error } = await supabase.rpc("accept_game_invite", {
     p_invite_id: inviteId,
@@ -388,7 +333,7 @@ export async function acceptGameInvite(inviteId: string, invitedPlayerId: string
 }
 
 export async function getGameInviteStatus(gameId: string, playerId: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { data, error } = await supabase
     .from("game_invites")
@@ -405,7 +350,7 @@ export async function getGameInviteStatus(gameId: string, playerId: string) {
 }
 
 export async function getPlayerGameSession(gameId: string, playerId: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { data, error } = await supabase
     .from("game_sessions")
@@ -422,12 +367,12 @@ export async function getPlayerGameSession(gameId: string, playerId: string) {
 }
 
 export async function getPlayerStats(username: string) {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { data: user, error } = await supabase
-    .from('users')
-    .select('*')
-    .eq('farcaster_username', username)
+    .from("users")
+    .select("*")
+    .eq("farcaster_username", username)
     .single()
 
   if (error) {
@@ -435,4 +380,54 @@ export async function getPlayerStats(username: string) {
   }
 
   return { data: user, error: null }
+}
+
+// ============================================================================
+// LEADERBOARD OPERATIONS
+// ============================================================================
+
+export async function getPlayerLeaderboard(limit: number = 10) {
+  const supabase = createClient()
+
+  const { data, error } = await supabase.rpc("get_player_leaderboard", {
+    p_limit: limit,
+  })
+
+  if (error) {
+    return { data: null, error: error.message }
+  }
+
+  return { data: data as LeaderboardEntry[], error: null }
+}
+
+export async function getAuthorLeaderboard(limit: number = 10) {
+  const supabase = createClient()
+
+  const { data, error } = await supabase.rpc("get_author_leaderboard", {
+    p_limit: limit,
+  })
+
+  if (error) {
+    return { data: null, error: error.message }
+  }
+
+  return { data: data as LeaderboardEntry[], error: null }
+}
+
+// ============================================================================
+// GAME REVEAL OPERATIONS
+// ============================================================================
+
+export async function revealGame(gameCode: string) {
+  const supabase = createClient()
+
+  const { data, error } = await supabase.rpc("reveal_game", {
+    p_game_code: gameCode,
+  })
+
+  if (error) {
+    return { data: null, error: error.message }
+  }
+
+  return { data: data, error: null }
 }

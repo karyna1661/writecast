@@ -7,7 +7,7 @@ import { CliTerminal, type CliMessage } from "@/components/cli-terminal"
 import { handleCommand } from "@/lib/command-handler"
 import { initialGameState, type GameState } from "@/lib/game-state"
 import { useFarcaster } from "@/contexts/FarcasterContext"
-import { getGameByCode } from "@/lib/actions/game-actions"
+import { getGameByCode } from "@/lib/actions/game-actions-client"
 import { terminalHaptics } from "@/lib/farcaster/haptics"
 
 interface PlayGameClientProps {

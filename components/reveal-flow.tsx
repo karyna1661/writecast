@@ -4,8 +4,8 @@ import { useState, useTransition } from "react"
 import { TerminalPrompt } from "@/components/terminal-prompt"
 import { TerminalButton } from "@/components/terminal-button"
 import { TerminalInput } from "@/components/terminal-input"
-import { revealGame } from "@/lib/actions/game-actions"
-import type { Game } from "@/lib/actions/game-actions"
+import { revealGame } from "@/lib/actions/game-actions-client"
+import type { Game } from "@/lib/actions/game-actions-client"
 
 interface RevealFlowProps {
   onBack: () => void

@@ -6,6 +6,29 @@ export const metadata = {
   title: "Writecast - CLI Word Game",
   description: "A terminal-style word guessing game on Farcaster",
   manifest: "/manifest.json",
+  metadataBase: new URL('https://writecast-1.vercel.app'),
+  openGraph: {
+    title: 'Writecast - CLI Word Game',
+    description: 'A terminal-style word guessing game on Farcaster',
+    url: 'https://writecast-1.vercel.app',
+    siteName: 'Writecast',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Writecast Game',
+      },
+    ],
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Writecast - CLI Word Game',
+    description: 'A terminal-style word guessing game on Farcaster',
+    images: ['/og-image.png'],
+  },
   viewport: {
     width: "device-width",
     initialScale: 1,
@@ -22,7 +45,12 @@ export const metadata = {
     "mobile-web-app-capable": "yes",
     "farcaster:app": "writecast",
     "farcaster:app_url": "https://writecast-1.vercel.app",
-    "fc:miniapp": '{"version":"1","imageUrl":"https://writecast-1.vercel.app/og-image.png","button":{"title":"Play Now","action":{"type":"launch_miniapp","name":"Writecast","url":"https://writecast-1.vercel.app","splashImageUrl":"https://writecast-1.vercel.app/og-image.png","splashBackgroundColor":"#0a1628"}}}',
+    // Frame-style fallback meta
+    'fc:frame': 'vNext',
+    'fc:frame:image': 'https://writecast-1.vercel.app/og-image.png',
+    'fc:frame:button:1': 'Play Now',
+    'fc:frame:button:1:action': 'launch_frame',
+    'fc:frame:button:1:target': 'https://writecast-1.vercel.app',
   },
 }
 
