@@ -55,7 +55,7 @@ export const metadata = {
           type: "launch_frame",
           name: "Writecast",
           url: "https://writecast-1.vercel.app",
-          splashImageUrl: "https://writecast-1.vercel.app/og-image.png",
+          splashImageUrl: "https://writecast-1.vercel.app/icon-512.svg",
           splashBackgroundColor: "#0a1628"
         }
       }
