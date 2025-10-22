@@ -224,10 +224,14 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
       }
 
       console.log("Signaling SDK ready...")
+      console.log("SDK object:", sdk)
+      console.log("SDK actions:", sdk.actions)
+      
       await sdk.actions.ready()
       console.log("SDK ready signal completed successfully")
     } catch (error) {
       console.error("Failed to signal SDK ready:", error)
+      console.error("Error details:", error)
     }
   }
 
