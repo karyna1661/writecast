@@ -18,9 +18,9 @@ export async function GET() {
       splashBackgroundColor: "#0a1628"
     },
     creator: {
-      fid: "thatweb3guy",
+      fid: "10032",
       username: "thatweb3guy",
-      displayName: "thatweb3guy"
+      displayName: "Hand Of Gold"
     }
   }
 
