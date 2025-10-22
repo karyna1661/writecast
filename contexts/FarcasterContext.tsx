@@ -13,6 +13,7 @@ interface FarcasterContextType {
   shareGame: (gameCode: string, template: "created" | "won" | "invite") => Promise<void>
   inviteUser: (username: string) => Promise<void>
   viewProfile: (username: string) => Promise<void>
+  signalReady: () => Promise<void>
   hapticFeedback: {
     success: () => Promise<void>
     error: () => Promise<void>
@@ -48,10 +49,8 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        // CRITICAL: Call ready() first and foremost
-        console.log("Calling sdk.actions.ready()...")
-        await sdk.actions.ready()  // Direct call, no wrapper
-        console.log("SDK ready() completed successfully")
+        // Note: sdk.actions.ready() will be called from the main page component
+        // after the UI is fully mounted to ensure proper timing
         
         // Then get user context
         try {
@@ -217,6 +216,21 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const signalReady = async () => {
+    try {
+      if (!isFarcasterAvailable()) {
+        console.log("Farcaster SDK not available - skipping ready signal")
+        return
+      }
+
+      console.log("Signaling SDK ready...")
+      await sdk.actions.ready()
+      console.log("SDK ready signal completed successfully")
+    } catch (error) {
+      console.error("Failed to signal SDK ready:", error)
+    }
+  }
+
 
   const hapticFeedback = {
     success: async () => {
@@ -277,6 +291,7 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
     shareGame,
     inviteUser,
     viewProfile,
+    signalReady,
     hapticFeedback,
     isAvailable,
   }

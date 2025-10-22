@@ -8,7 +8,7 @@ export async function GET() {
       signature: "",
     },
     frame: {
-      version: 'next',
+      version: '1',
       name: 'Writecast',
       iconUrl: `${baseUrl}/icon-512.png`,
       splashImageUrl: `${baseUrl}/og-image.png`,
@@ -18,7 +18,7 @@ export async function GET() {
       button: {
         title: 'Play Now',
         action: {
-          type: 'launch_frame',
+          type: 'post',
           name: 'Writecast',
           url: baseUrl,
           splashImageUrl: `${baseUrl}/og-image.png`,

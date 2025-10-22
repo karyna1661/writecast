@@ -49,7 +49,7 @@ export const metadata = {
     'fc:frame': 'vNext',
     'fc:frame:image': 'https://writecast-1.vercel.app/og-image.png',
     'fc:frame:button:1': 'Play Now',
-    'fc:frame:button:1:action': 'launch_frame',
+    'fc:frame:button:1:action': 'post',
     'fc:frame:button:1:target': 'https://writecast-1.vercel.app',
   },
 }
