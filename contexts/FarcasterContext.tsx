@@ -42,71 +42,58 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
         const available = isFarcasterAvailable()
         setIsAvailable(available)
         
-        if (available) {
-          try {
-            // CRITICAL: Signal to Farcaster that the Mini App is ready
-            await farcasterSDK.actions.ready()
-            if (process.env.NODE_ENV === 'development') {
-              console.log("Farcaster Mini App ready!")
+        if (!available) {
+          console.log("Farcaster SDK not available - running in standalone mode")
+          setAuth(prev => ({ ...prev, isLoading: false }))
+          return
+        }
+
+        // CRITICAL: Call ready() first and foremost
+        console.log("Calling sdk.actions.ready()...")
+        await sdk.actions.ready()  // Direct call, no wrapper
+        console.log("SDK ready() completed successfully")
+        
+        // Then get user context
+        try {
+          // Try to get user context from SDK first (most efficient)
+          const context = await sdk.context
+          if (process.env.NODE_ENV === 'development') {
+            console.log("SDK context:", context)
+          }
+          
+          if (context?.user) {
+            const user: FarcasterUser = {
+              fid: context.user.fid,
+              username: context.user.username || `user-${context.user.fid}`,
+              displayName: context.user.displayName || context.user.username || `user-${context.user.fid}`,
             }
             
-            // AUTOMATICALLY get user context from Farcaster
-            try {
-              // Try to get user context from SDK first (most efficient)
-              const context = await sdk.context
-              if (process.env.NODE_ENV === 'development') {
-                console.log("SDK context:", context)
-              }
-              
-              if (context?.user) {
-                const user: FarcasterUser = {
-                  fid: context.user.fid,
-                  username: context.user.username || `user-${context.user.fid}`,
-                  displayName: context.user.displayName || context.user.username || `user-${context.user.fid}`,
-                }
-                
-                setAuth({
-                  isAuthenticated: true,
-                  user,
-                  token: null, // Token can be fetched later if needed
-                  isLoading: false,
-                })
-                if (process.env.NODE_ENV === 'development') {
-                  console.log("Auto-authenticated user:", user.username)
-                }
-              } else {
-                if (process.env.NODE_ENV === 'development') {
-                  console.log("No user context found, staying as guest")
-                }
-                setAuth(prev => ({ ...prev, isLoading: false }))
-              }
-            } catch (contextError) {
-              console.warn("Could not get user context:", contextError)
-              setAuth(prev => ({ ...prev, isLoading: false }))
+            setAuth({
+              isAuthenticated: true,
+              user,
+              token: null, // Token can be fetched later if needed
+              isLoading: false,
+            })
+            if (process.env.NODE_ENV === 'development') {
+              console.log("Auto-authenticated user:", user.username)
             }
-          } catch (readyError) {
-            console.warn("Failed to signal ready to Farcaster:", readyError)
+          } else {
+            if (process.env.NODE_ENV === 'development') {
+              console.log("No user context found, staying as guest")
+            }
             setAuth(prev => ({ ...prev, isLoading: false }))
           }
-        } else {
-          console.log("Farcaster SDK not available - running in standalone mode")
+        } catch (contextError) {
+          console.warn("Could not get user context:", contextError)
           setAuth(prev => ({ ...prev, isLoading: false }))
         }
       } catch (error) {
-        console.error("Failed to initialize Farcaster SDK:", error)
+        console.error("SDK initialization failed:", error)
         setAuth(prev => ({ ...prev, isLoading: false }))
       }
     }
 
-    // Add a timeout to prevent infinite loading
-    const timeout = setTimeout(() => {
-      console.warn("SDK initialization timeout - proceeding without Farcaster")
-      setAuth(prev => ({ ...prev, isLoading: false }))
-    }, 3000) // Reduced timeout to 3 seconds
-
-    initSDK().finally(() => {
-      clearTimeout(timeout)
-    })
+    initSDK()
   }, [])
 
   const login = async () => {

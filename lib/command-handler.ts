@@ -15,8 +15,8 @@ import {
   getGameInviteStatus,
   getPlayerGameSession,
   getPlayerStats,
-} from "@/lib/actions/game-actions"
-import { joinWaitlist, getWaitlistCount } from "@/lib/actions/waitlist-actions"
+} from "@/lib/actions/game-actions-client"
+import { joinWaitlist, getWaitlistCount } from "@/lib/actions/waitlist-actions-client"
 import { useFarcaster } from "@/contexts/FarcasterContext"
 import { terminalHaptics } from "@/lib/farcaster/haptics"
 
@@ -204,20 +204,11 @@ export async function handleCommand(
       break
 
     default:
-      // Check if user is in an active game and typed a word (likely meant to guess)
-      if (gameState.currentGame && gameState.step === "playing" && command && !command.startsWith('/')) {
       addMessage({
         type: "error",
-          content: `💡 Hint: Did you mean 'guess ${command}'?\n\nUse 'guess <word>' to submit your answer.`,
-          timestamp: Date.now(),
-        })
-      } else {
-        addMessage({
-          type: "error",
-          content: `Unknown command: '${command}'.\n\nType 'help' for available commands.`,
+        content: `Unknown command: '${command}'. Type 'help' for available commands.`,
         timestamp: Date.now(),
       })
-      }
   }
 }
 
@@ -596,20 +587,20 @@ async function handlePlay(
     return
   }
 
-  const gameId = args[0].toUpperCase()
+  const gameCode = args[0].toUpperCase()
 
-  const { data: game, error } = await getGameByCode(gameId)
-
-  if (error || !game) {
+  // Load game by code first
+  const { data: game, error: loadError } = await getGameByCode(gameCode)
+  if (loadError || !game) {
     addMessage({
       type: "error",
-      content: `Game not found: ${gameId}\n\nType 'games' to see all available games!`,
+      content: `Game not found or inactive: ${gameCode}\n\nType 'games' to see all available games!",
       timestamp: Date.now(),
     })
     return
   }
 
-  // Get or create player
+  // Resolve actual player (UUID) for correct checks
   const userInfo = getCurrentUserInfo(farcasterContext)
   const { data: user, error: userError } = await getOrCreateUser(userInfo)
   if (userError || !user) {
@@ -621,7 +612,7 @@ async function handlePlay(
     return
   }
 
-  // Check if player is the author
+  // Author cannot play own game
   if (game.author_id === user.id) {
     addMessage({
       type: "error",
@@ -631,7 +622,7 @@ async function handlePlay(
     return
   }
 
-  // Check if player has already completed this game  
+  // Check if player already completed this game
   const { data: existingSession } = await getPlayerGameSession(game.id, user.id)
   if (existingSession && (existingSession.status === "won" || existingSession.status === "lost")) {
     addMessage({
@@ -642,10 +633,11 @@ async function handlePlay(
     return
   }
 
+  // Initialize local state for gameplay
   setGameState({
     ...gameState,
     step: "playing",
-    currentGameId: gameId,
+    currentGameId: gameCode,
     currentGame: {
       hiddenWord: game.hidden_word,
       masterpiece: game.masterpiece_text,
@@ -658,7 +650,7 @@ async function handlePlay(
 
   let gameText = `
 ${"━".repeat(60)}
-GAME LOADED: ${gameId} (${modeText})
+GAME LOADED: ${gameCode} (${modeText})
 ${"━".repeat(60)}
 
 `
@@ -735,8 +727,6 @@ async function handleGuess(
 
   // Submit guess
   const { data: result, error: guessError } = await submitGuess(game.id, user.id, rawArgs)
-
-  console.log("[DEBUG] submitGuess result:", result)
 
   if (guessError || !result) {
     addMessage({
@@ -823,17 +813,11 @@ ${"━".repeat(60)}`,
         })
 
         const remainingAttempts = (result.max_attempts || 3) - result.attempt_number
-        console.log("[DEBUG] Attempts calculation:", {
-          attempt_number: result.attempt_number,
-          max_attempts: result.max_attempts,
-          remainingAttempts,
-          gameStateAttempts: gameState.attempts
-        })
-        let message = `Incorrect! Attempts: ${result.attempt_number}/${result.max_attempts || 3}\nAttempts remaining: ${remainingAttempts}\nTry again: guess <word>`
+        let message = `Incorrect! Attempts remaining: ${remainingAttempts}/${result.max_attempts || 3}\nTry again: guess <word>`
         
-        // Show invite prompt if on 3rd wrong attempt and haven't used invite
-        if (result.attempt_number === 3 && result.can_invite && farcasterContext?.auth?.isAuthenticated) {
-          message += `\n\n💡 Out of attempts! Use 'invite @friend' to get 1 bonus attempt and keep playing!`
+        // Show invite prompt if on 3rd attempt and haven't used invite
+        if (result.attempt_number === 3 && result.can_invite) {
+          message += `\n\n💡 You have 1 attempt left! Use 'invite @friend' for 1 bonus attempt!`
         }
 
         addMessage({
@@ -852,11 +836,6 @@ async function handleInvite(
   addMessage: (msg: CliMessage) => void,
   farcasterContext?: any,
 ) {
-  // Check authentication first
-  if (!requiresAuth(farcasterContext, addMessage, "invite friends and share on Farcaster")) {
-    return
-  }
-
   if (!gameState.currentGame) {
     addMessage({
       type: "error",

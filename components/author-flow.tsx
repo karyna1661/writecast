@@ -5,7 +5,7 @@ import { TerminalPrompt } from "@/components/terminal-prompt"
 import { TerminalButton } from "@/components/terminal-button"
 import { TerminalInput } from "@/components/terminal-input"
 import { TerminalTextarea } from "@/components/terminal-textarea"
-import { createGame, getOrCreateUser } from "@/lib/actions/game-actions"
+import { createGame, getOrCreateUser } from "@/lib/actions/game-actions-client"
 import type { GameMode } from "@/lib/game-state"
 
 interface AuthorFlowProps {
