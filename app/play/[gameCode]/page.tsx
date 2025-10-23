@@ -22,7 +22,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
           images: ["https://writecast-1.vercel.app/og-image.png"],
         },
         other: {
-          "fc:miniapp": `{"version":"1","imageUrl":"https://writecast-1.vercel.app/og-image.png","button":{"title":"Play Now","action":{"type":"launch_miniapp","name":"Writecast","url":"https://writecast-1.vercel.app/?code=${gameCode}","splashImageUrl":"https://writecast-1.vercel.app/og-image.png","splashBackgroundColor":"#0a1628"}}}`,
+          "fc:miniapp": `{"version":"1","imageUrl":"https://writecast-1.vercel.app/og-image.png","button":{"title":"Play Now","action":{"type":"launch_frame","name":"Writecast","url":"https://writecast-1.vercel.app/play/${gameCode}","splashImageUrl":"https://writecast-1.vercel.app/icon-192.png","splashBackgroundColor":"#0a1628"}}}`,
         },
       }
     }
@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         url: `https://writecast-1.vercel.app/play/${gameCode}`,
       },
       other: {
-        "fc:miniapp": `{"version":"1","imageUrl":"https://writecast-1.vercel.app/og-image.png","button":{"title":"Play Now","action":{"type":"launch_miniapp","name":"Writecast","url":"https://writecast-1.vercel.app/?code=${gameCode}","splashImageUrl":"https://writecast-1.vercel.app/og-image.png","splashBackgroundColor":"#0a1628"}}}`,
+        "fc:miniapp": `{"version":"1","imageUrl":"https://writecast-1.vercel.app/og-image.png","button":{"title":"Play Now","action":{"type":"launch_frame","name":"Writecast","url":"https://writecast-1.vercel.app/play/${gameCode}","splashImageUrl":"https://writecast-1.vercel.app/icon-192.png","splashBackgroundColor":"#0a1628"}}}`,
       },
     }
   } catch (error) {
@@ -53,7 +53,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         images: ["https://writecast-1.vercel.app/og-image.png"],
       },
       other: {
-        "fc:miniapp": `{"version":"1","imageUrl":"https://writecast-1.vercel.app/og-image.png","button":{"title":"Play Now","action":{"type":"launch_miniapp","name":"Writecast","url":"https://writecast-1.vercel.app/?code=${gameCode}","splashImageUrl":"https://writecast-1.vercel.app/og-image.png","splashBackgroundColor":"#0a1628"}}}`,
+        "fc:miniapp": `{"version":"1","imageUrl":"https://writecast-1.vercel.app/og-image.png","button":{"title":"Play Now","action":{"type":"launch_frame","name":"Writecast","url":"https://writecast-1.vercel.app/play/${gameCode}","splashImageUrl":"https://writecast-1.vercel.app/icon-192.png","splashBackgroundColor":"#0a1628"}}}`,
       },
     }
   }

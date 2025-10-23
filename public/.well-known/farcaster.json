@@ -1,27 +1,23 @@
 {
-  "miniapp": {
+  "accountAssociation": {
+    "header": "eyJmaWQiOjM2MjEsInR5cGUiOiJjdXN0b2R5Iiwia2V5IjoiMHgxMjM0NTY3ODkwYWJjZGVmZ2hpamsifQ==",
+    "payload": "eyJkb21haW4iOiJ3cml0ZWNhc3QtMS52ZXJjZWwuYXBwIn0=",
+    "signature": "PLACEHOLDER_SIGNATURE_TO_BE_UPDATED_WITH_REAL_SIGNATURE"
+  },
+  "frame": {
     "version": "1",
     "name": "Writecast",
     "iconUrl": "https://writecast-1.vercel.app/icon-512.png",
     "homeUrl": "https://writecast-1.vercel.app",
-    "splashImageUrl": "https://writecast-1.vercel.app/og-image.png",
+    "splashImageUrl": "https://writecast-1.vercel.app/icon-192.png",
     "splashBackgroundColor": "#0a1628",
-    "heroImageUrl": "https://writecast-1.vercel.app/og-image.png",
-    "tagline": "A terminal-style word game on Farcaster"
-  },
-  "account": {
-    "type": "farcaster",
-    "username": "writecast"
-  },
-  "verification": {
-    "domain": "writecast-1.vercel.app",
-    "signature": "PLACEHOLDER_SIGNATURE_TO_BE_UPDATED_IN_PRODUCTION"
-  },
-  "permissions": [
-    "notifications",
-    "social_sharing",
-    "user_profile"
-  ],
-  "categories": ["games", "entertainment"],
-  "tags": ["word-game", "terminal", "cli", "farcaster", "mini-app"]
+    "webhookUrl": "https://writecast-1.vercel.app/api/farcaster/webhook",
+    "subtitle": "Terminal-style word game",
+    "description": "Guess hidden words in a retro CLI interface. Challenge friends with custom word puzzles.",
+    "primaryCategory": "games",
+    "tags": ["word-game", "terminal", "cli", "puzzle", "social"],
+    "ogTitle": "Writecast - CLI Word Game",
+    "ogDescription": "A terminal-style word guessing game on Farcaster",
+    "ogImageUrl": "https://writecast-1.vercel.app/og-image.png"
+  }
 }
