@@ -9,7 +9,7 @@
     "name": "Writecast",
     "iconUrl": "https://writecast-1.vercel.app/icon-512.png",
     "homeUrl": "https://writecast-1.vercel.app",
-    "splashImageUrl": "https://writecast-1.vercel.app/icon-192.png",
+    "splashImageUrl": "https://writecast-1.vercel.app/icon-512.png",
     "splashBackgroundColor": "#0a1628",
     "webhookUrl": "https://writecast-1.vercel.app/api/farcaster/webhook",
     "subtitle": "Terminal-style word game",
@@ -18,6 +18,6 @@
     "tags": ["word-game", "terminal", "cli", "puzzle", "social"],
     "ogTitle": "Writecast - CLI Word Game",
     "ogDescription": "A terminal-style word guessing game on Farcaster",
-    "ogImageUrl": "https://writecast-1.vercel.app/og-image.png"
+    "ogImageUrl": "https://writecast-1.vercel.app/icon-512.png"
   }
 }

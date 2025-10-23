@@ -15,6 +15,7 @@ import {
   getGameInviteStatus,
   getPlayerGameSession,
   getPlayerStats,
+  cleanupExpiredGames,
 } from "@/lib/actions/game-actions"
 import { joinWaitlist, getWaitlistCount } from "@/lib/actions/waitlist-actions"
 import { useFarcaster } from "@/contexts/FarcasterContext"
@@ -154,6 +155,10 @@ export async function handleCommand(
 
     case "leaderboard":
       await handleLeaderboard(addMessage)
+      break
+
+    case "cleanup":
+      await handleCleanup(addMessage, farcasterContext)
       break
 
     case "notify":
@@ -817,17 +822,17 @@ ${"━".repeat(60)}`,
         // Trigger error haptic feedback for wrong guess
         await terminalHaptics.wrongGuess()
 
-        setGameState({
-          ...gameState,
-          attempts: result.attempt_number,
-        })
-
         const remainingAttempts = (result.max_attempts || 3) - result.attempt_number
         console.log("[DEBUG] Attempts calculation:", {
           attempt_number: result.attempt_number,
           max_attempts: result.max_attempts,
           remainingAttempts,
           gameStateAttempts: gameState.attempts
+        })
+
+        setGameState({
+          ...gameState,
+          attempts: remainingAttempts, // Store attempts remaining, not used
         })
         
         // Calculate attempts left considering invite bonus
@@ -836,8 +841,8 @@ ${"━".repeat(60)}`,
         
         let message = `Incorrect! Attempts: ${result.attempt_number}/${maxAttempts}\nAttempts remaining: ${attemptsLeft}\nTry again: guess <word>`
         
-        // Show invite hint after 2nd failed attempt (before final attempt)
-        if (result.attempt_number === 2 && !gameState.invitedFriend && farcasterContext?.auth?.isAuthenticated) {
+        // Show invite hint after 2nd failed attempt (when 1 attempt remaining)
+        if (remainingAttempts === 1 && !gameState.invitedFriend && farcasterContext?.auth?.isAuthenticated) {
           message += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 💡 TIP: Running out of attempts?
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
@@ -890,7 +895,7 @@ async function handleInvite(
   }
 
   // Check attempts used (must be 2 to invite)
-  if (gameState.attempts < 2) {
+  if (gameState.attempts > 1) {
     addMessage({
       type: "error",
       content: "You can only use 'invite' before your final attempt (after 2 failed guesses).",
@@ -899,7 +904,7 @@ async function handleInvite(
     return
   }
 
-  if (gameState.attempts >= 3) {
+  if (gameState.attempts <= 0) {
     addMessage({
       type: "error",
       content: "Too late! You've already used all your attempts.",
@@ -992,10 +997,12 @@ If you win, we both earn bonus points! 🎯`
       mentionedUsers: [invitedUsername]
     })
 
-    // Update game state: Mark invite used
+    // Update game state optimistically: Mark invite used and grant bonus attempt
     setGameState({
       ...gameState,
       invitedFriend: true,
+      bonusAttempts: 1,
+      attempts: 2, // 1 remaining original + 1 bonus = 2 attempts remaining
     })
 
     // Trigger success haptic feedback
@@ -1010,8 +1017,8 @@ HELP REQUESTED! 📞
 Invited: ${invitedUsername}
 Game: ${gameState.currentGameId}
 
-✓ You now have 4 attempts total!
-(3 original + 1 bonus from invite)
+✓ You now have 2 attempts remaining!
+(1 original + 1 bonus from invite)
 
 If ${invitedUsername} wins, you both earn bonus points!
 
@@ -1207,6 +1214,44 @@ ${authorsList}
 ${"━".repeat(60)}`
 
   addMessage({ type: "output", content: leaderboard, timestamp: Date.now() })
+}
+
+async function handleCleanup(addMessage: (msg: CliMessage) => void, farcasterContext?: any) {
+  // Check authentication first
+  if (!requiresAuth(farcasterContext, addMessage, "clean up expired games")) {
+    return
+  }
+
+  addMessage({
+    type: "output",
+    content: "Cleaning up expired games...",
+    timestamp: Date.now(),
+  })
+
+  try {
+    const { data: deletedCount, error } = await cleanupExpiredGames()
+
+    if (error) {
+      addMessage({
+        type: "error",
+        content: `Failed to cleanup games: ${error}`,
+        timestamp: Date.now(),
+      })
+      return
+    }
+
+    addMessage({
+      type: "success",
+      content: `✓ Cleanup complete! Deleted ${deletedCount} expired games.\n\nNote: Leaderboard data is preserved even after games are deleted.`,
+      timestamp: Date.now(),
+    })
+  } catch (error) {
+    addMessage({
+      type: "error",
+      content: `Cleanup failed: ${error instanceof Error ? error.message : "Unknown error"}`,
+      timestamp: Date.now(),
+    })
+  }
 }
 
 // ============================================================================

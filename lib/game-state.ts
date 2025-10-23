@@ -13,10 +13,11 @@ export interface GameState {
   currentGameId: string
   currentGame: { hiddenWord: string; masterpiece: string; mode: GameMode } | null
   guess: string
-  attempts: number
+  attempts: number // Now represents attempts REMAINING (not used)
   
   // Invite state
   invitedFriend: boolean
+  bonusAttempts: number // Track bonus attempts granted
 }
 
 export const initialGameState: GameState = {
@@ -28,8 +29,9 @@ export const initialGameState: GameState = {
   currentGameId: "",
   currentGame: null,
   guess: "",
-  attempts: 0,
+  attempts: 3, // Start with 3 attempts remaining
   invitedFriend: false,
+  bonusAttempts: 0, // No bonus attempts initially
 }
 
 export const MOCK_GAMES: Record<string, { hiddenWord: string; masterpiece: string; mode: GameMode }> = {

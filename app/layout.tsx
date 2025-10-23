@@ -1,6 +1,7 @@
 import type React from "react"
 import "./globals.css"
 import { FarcasterProvider } from "@/contexts/FarcasterContext"
+import { Analytics } from "@vercel/analytics/react"
 
 export const metadata = {
   title: "Writecast - CLI Word Game",
@@ -14,9 +15,9 @@ export const metadata = {
     siteName: 'Writecast',
     images: [
       {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
+        url: '/icon-512.png',
+        width: 512,
+        height: 512,
         alt: 'Writecast Game',
       },
     ],
@@ -27,7 +28,7 @@ export const metadata = {
     card: 'summary_large_image',
     title: 'Writecast - CLI Word Game',
     description: 'A terminal-style word guessing game on Farcaster',
-    images: ['/og-image.png'],
+    images: ['/icon-512.png'],
   },
   viewport: {
     width: "device-width",
@@ -48,14 +49,14 @@ export const metadata = {
     // Mini App embed metadata
     'fc:miniapp': JSON.stringify({
       version: "1",
-      imageUrl: "https://writecast-1.vercel.app/og-image.png",
+      imageUrl: "https://writecast-1.vercel.app/icon-512.png",
       button: {
         title: "Play Now",
         action: {
-          type: "launch_frame",
+          type: "launch_miniapp",
           name: "Writecast",
           url: "https://writecast-1.vercel.app",
-          splashImageUrl: "https://writecast-1.vercel.app/icon-192.png",
+          splashImageUrl: "https://writecast-1.vercel.app/icon-512.png",
           splashBackgroundColor: "#0a1628"
         }
       }
@@ -74,6 +75,7 @@ export default function RootLayout({
         <FarcasterProvider>
           {children}
         </FarcasterProvider>
+        <Analytics />
       </body>
     </html>
   )

@@ -161,6 +161,16 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Farcaster SDK not available")
       }
 
+      // Store current state before opening composer for faster restoration
+      if (typeof window !== 'undefined') {
+        const stateToStore = {
+          gameCode,
+          template,
+          timestamp: Date.now()
+        }
+        sessionStorage.setItem('farcaster_composer_state', JSON.stringify(stateToStore))
+      }
+
       let text = ""
       let embedUrl = ""
       
@@ -229,6 +239,11 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
         embeds: options?.embeds || [embedUrl],
         ...options
       })
+      
+      // Clear stored state after successful compose
+      if (typeof window !== 'undefined') {
+        sessionStorage.removeItem('farcaster_composer_state')
+      }
     } catch (error) {
       console.error("Failed to share game:", error)
       throw error

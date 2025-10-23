@@ -83,6 +83,8 @@ NAVIGATION:
 UTILITIES:
   leaderboard
     View top players and authors
+  cleanup
+    Remove expired games (24+ hours old) - preserves leaderboard data
   help
     Show this help message
   clear

@@ -7,11 +7,49 @@ import { CliTerminal, type CliMessage } from "@/components/cli-terminal"
 import { handleCommand } from "@/lib/command-handler"
 import { initialGameState, type GameState } from "@/lib/game-state"
 import { useFarcaster } from "@/contexts/FarcasterContext"
+import { syncGameSession, createDebouncedSync } from "@/lib/actions/game-session-sync"
 
 export default function Home() {
   const [messages, setMessages] = useState<CliMessage[]>([])
   const [gameState, setGameState] = useState<GameState>(initialGameState)
   const farcaster = useFarcaster()
+  
+  // Create debounced sync function
+  const debouncedSync = createDebouncedSync(500)
+
+  // Sync game session when app regains visibility (e.g., after composer closes)
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible" && gameState.currentGameId && farcaster.auth.user) {
+        console.log("App regained visibility, syncing game session...")
+        
+        const userId = `farcaster_${farcaster.auth.user.fid}`
+        debouncedSync(gameState.currentGameId, userId, (sessionData) => {
+          if (sessionData) {
+            console.log("Synced session data:", sessionData)
+            setGameState(prev => ({
+              ...prev,
+              attempts: sessionData.attemptsRemaining,
+              bonusAttempts: sessionData.bonusAttempts,
+              invitedFriend: sessionData.hasUsedInvite
+            }))
+            
+            // Show sync message if state changed
+            if (sessionData.bonusAttempts > 0 && !gameState.invitedFriend) {
+              setMessages(prev => [...prev, {
+                type: "success",
+                content: `✓ Game state restored! You have ${sessionData.attemptsRemaining} attempts remaining.`,
+                timestamp: Date.now()
+              }])
+            }
+          }
+        })
+      }
+    }
+
+    document.addEventListener("visibilitychange", handleVisibilityChange)
+    return () => document.removeEventListener("visibilitychange", handleVisibilityChange)
+  }, [gameState.currentGameId, farcaster.auth.user, debouncedSync, gameState.invitedFriend])
 
   useEffect(() => {
     // Only show welcome message after SDK is ready

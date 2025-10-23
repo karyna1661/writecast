@@ -18,7 +18,8 @@ RETURNS TABLE (
   successful_guesses INTEGER,
   failed_guesses INTEGER,
   total_attempts INTEGER,
-  created_at TIMESTAMP WITH TIME ZONE
+  created_at TIMESTAMP WITH TIME ZONE,
+  expires_at TIMESTAMP WITH TIME ZONE
 ) AS $$
 BEGIN
   RETURN QUERY
@@ -26,6 +27,7 @@ BEGIN
   FROM games g
   LEFT JOIN users u ON u.farcaster_id = p_player_id
   WHERE g.status = 'active'
+    AND (g.expires_at IS NULL OR g.expires_at > NOW()) -- Exclude expired games
     AND (u.id IS NULL OR g.author_id != u.id) -- Exclude games created by player
     AND NOT EXISTS ( -- Exclude completed games
       SELECT 1 FROM game_sessions gs

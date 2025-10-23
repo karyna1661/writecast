@@ -20,6 +20,7 @@ export interface Game {
   failed_guesses: number
   total_attempts: number
   created_at: string
+  expires_at?: string // Optional expiry timestamp
 }
 
 export interface GameSession {
@@ -75,7 +76,7 @@ export async function getOrCreateUser(userInfo: string | { userId: string; usern
       displayName = userInfo.displayName || `User ${fid}`
     } else if (userInfo.userId === "anonymous_user") {
       farcasterUsername = "anonymous"
-      displayName = "Anonymous"
+      displayName = "Anonymous Player"
       farcasterId = "anonymous_user"  // ← FIXED: Use stable ID
     }
   } else if (typeof userInfo === "string") {
@@ -91,7 +92,7 @@ export async function getOrCreateUser(userInfo: string | { userId: string; usern
       farcasterId = "demo_player"  // ← FIXED: Use stable ID
     } else {
       farcasterUsername = "anonymous"
-      displayName = "Anonymous"
+      displayName = "Anonymous Player"
       farcasterId = "anonymous_user"  // ← FIXED: Use stable ID
     }
   }
@@ -129,6 +130,7 @@ export async function getGameByCode(code: string) {
     .select("*")
     .eq("game_code", code.toUpperCase())
     .eq("status", "active")
+    .or("expires_at.is.null,expires_at.gt.now()") // Only non-expired games
     .single()
 
   if (error) {
@@ -142,11 +144,12 @@ export async function getAllGames(playerId?: string) {
   const supabase = await createClient()
 
   if (!playerId) {
-    // Return all games if no player specified (for admin/debug purposes)
+    // Return all non-expired games if no player specified (for admin/debug purposes)
     const { data, error } = await supabase
       .from("games")
       .select("*")
       .eq("status", "active")
+      .or("expires_at.is.null,expires_at.gt.now()") // Only non-expired games
       .order("created_at", { ascending: false })
 
     if (error) {
@@ -286,6 +289,22 @@ export async function getGameAttempts(gameId: string, playerId: string) {
 }
 
 // ============================================================================
+// GAME CLEANUP OPERATIONS
+// ============================================================================
+
+export async function cleanupExpiredGames() {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase.rpc("cleanup_expired_games")
+
+  if (error) {
+    return { data: null, error: error.message }
+  }
+
+  return { data: data, error: null }
+}
+
+// ============================================================================
 // LEADERBOARD OPERATIONS
 // ============================================================================
 
@@ -296,6 +315,8 @@ export async function getPlayerLeaderboard(limit = 10) {
     .from("users")
     .select("id, farcaster_username, display_name, total_points_earned, total_games_played")
     .gt("total_games_played", 0)
+    .not("farcaster_username", "eq", "anonymous") // Exclude anonymous users
+    .not("farcaster_username", "eq", "demo_player") // Exclude demo users
     .order("total_points_earned", { ascending: false })
     .limit(limit)
 
@@ -319,6 +340,8 @@ export async function getAuthorLeaderboard(limit = 10) {
     .from("users")
     .select("id, farcaster_username, display_name, total_points_as_author, total_games_created")
     .gt("total_games_created", 0)
+    .not("farcaster_username", "eq", "anonymous") // Exclude anonymous users
+    .not("farcaster_username", "eq", "demo_player") // Exclude demo users
     .order("total_points_as_author", { ascending: false })
     .limit(limit)
 
