@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Writecast Icon Converter</title>
+    <style>
+        body { 
+            margin: 0; 
+            padding: 20px; 
+            background: white; 
+            font-family: Arial, sans-serif;
+            text-align: center;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        svg { 
+            width: 512px; 
+            height: 512px; 
+            border: 2px solid #ddd;
+            margin: 20px 0;
+        }
+        .instructions {
+            background: #f0f8ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .download-btn {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Writecast Icon Converter</h1>
+        <p>Your custom terminal-style icon with the "W" logo</p>
+        
+        <div class="instructions">
+            <h3>📝 How to convert to PNG:</h3>
+            <p><strong>Method 1:</strong> Right-click on the icon below → "Save image as..." → Save as PNG</p>
+            <p><strong>Method 2:</strong> Use the download button below</p>
+        </div>
+        
+        <svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+          <!-- Background -->
+          <rect width="512" height="512" fill="#0a1628" rx="64"/>
+          
+          <!-- Terminal border -->
+          <rect x="32" y="32" width="448" height="448" fill="none" stroke="#1e40af" stroke-width="4" rx="16"/>
+          
+          <!-- Terminal header dots -->
+          <circle cx="48" cy="48" r="6" fill="#ef4444"/>
+          <circle cx="64" cy="48" r="6" fill="#fbbf24"/>
+          <circle cx="80" cy="48" r="6" fill="#10b981"/>
+          
+          <!-- Large W letter -->
+          <text x="256" y="320" font-family="monospace" font-size="200" fill="#06b6d4" text-anchor="middle" font-weight="bold">W</text>
+          
+          <!-- Terminal prompt -->
+          <text x="256" y="400" font-family="monospace" font-size="24" fill="#10b981" text-anchor="middle">
+            writecast
+          </text>
+          
+          <!-- Version -->
+          <text x="256" y="440" font-family="monospace" font-size="16" fill="#9ca3af" text-anchor="middle">
+            v1.0.0
+          </text>
+        </svg>
+        
+        <div>
+            <button class="download-btn" onclick="downloadAsPNG()">📥 Download as PNG</button>
+            <button class="download-btn" onclick="copyToClipboard()">📋 Copy Image</button>
+        </div>
+        
+        <div class="instructions">
+            <h3>🎯 Next Steps:</h3>
+            <ol>
+                <li>Download or copy the PNG image</li>
+                <li>Save it as <code>icon-512.png</code> in your <code>public/</code> folder</li>
+                <li>Replace the existing icon-512.png file</li>
+                <li>Deploy to see your custom icon in the Farcaster mini app!</li>
+            </ol>
+        </div>
+    </div>
+
+    <script>
+        function downloadAsPNG() {
+            const svg = document.querySelector('svg');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = 512;
+            canvas.height = 512;
+            
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const img = new Image();
+            
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0);
+                const pngData = canvas.toDataURL('image/png');
+                
+                const link = document.createElement('a');
+                link.download = 'icon-512.png';
+                link.href = pngData;
+                link.click();
+            };
+            
+            img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+        }
+        
+        function copyToClipboard() {
+            const svg = document.querySelector('svg');
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            
+            canvas.width = 512;
+            canvas.height = 512;
+            
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const img = new Image();
+            
+            img.onload = function() {
+                ctx.drawImage(img, 0, 0);
+                canvas.toBlob(function(blob) {
+                    navigator.clipboard.write([
+                        new ClipboardItem({
+                            'image/png': blob
+                        })
+                    ]).then(() => {
+                        alert('✅ Image copied to clipboard! You can now paste it into an image editor and save as PNG.');
+                    });
+                });
+            };
+            
+            img.src = 'data:image/svg+xml;base64,' + btoa(svgData);
+        }
+        
+        console.log('🎮 Writecast Icon Converter Ready!');
+    </script>
+</body>
+</html>
