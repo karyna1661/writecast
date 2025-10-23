@@ -163,22 +163,39 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
 
       let text = ""
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"
-      const playUrl = `${baseUrl}/?code=${gameCode}`
+      // Fix: Use proper game URL format
+      const playUrl = `${baseUrl}/play/${gameCode}`
+      
+      // Try to get game metadata for better sharing
+      let gameMetadata = null
+      try {
+        const response = await fetch(`${baseUrl}/api/game/${gameCode}`)
+        if (response.ok) {
+          gameMetadata = await response.json()
+        }
+      } catch (error) {
+        console.warn("Could not fetch game metadata:", error)
+      }
       
       switch (template) {
         case "created":
-          text = `I just created a word game on Writecast! 🎮\n\nGame Code: ${gameCode}\nCan you guess my hidden word?\n\nClick Play Now to start! 🤔`
+          if (gameMetadata) {
+            const gameMode = gameMetadata.mode === "fill-blank" ? "Fill-in-Blank" : "Frame-the-Word"
+            text = `🎮 I just created a ${gameMode} word game on Writecast!\n\nGame Code: ${gameCode}\nCan you guess my hidden word?\n\nClick "Play Now" to start! 🤔`
+          } else {
+            text = `🎮 I just created a word game on Writecast!\n\nGame Code: ${gameCode}\nCan you guess my hidden word?\n\nClick "Play Now" to start! 🤔`
+          }
           break
         case "won":
-          text = `I just won a word game on Writecast! 🎉\n\nGame: ${gameCode}\nPlay it yourself and see if you can beat my score! 🏆`
+          text = `🎉 I just won a word game on Writecast!\n\nGame: ${gameCode}\nPlay it yourself and see if you can beat my score! 🏆`
           break
         case "invite":
           // Use custom text/embeds from options if provided
-          text = options?.text || `Join me in this word game! 🎮\n\nGame: ${gameCode}`
+          text = options?.text || `🎮 Join me in this word game!\n\nGame: ${gameCode}\nLet's see who can solve it first!`
           break
       }
 
-      // Compose cast with text and embed URL for Frame
+      // Compose cast with text and proper embed URL for Frame
       await farcasterSDK.actions.composeCast(text, {
         embeds: options?.embeds || [playUrl],
         ...options

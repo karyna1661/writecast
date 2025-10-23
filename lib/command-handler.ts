@@ -939,7 +939,7 @@ async function handleInvite(
 
   // Compose cast with embedded game
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"
-  const gameUrl = `${baseUrl}/?code=${gameState.currentGameId}`
+  const gameUrl = `${baseUrl}/play/${gameState.currentGameId}`
   
   const castText = `${invitedUsername} I need your help! 🆘
 
