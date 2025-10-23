@@ -954,46 +954,41 @@ async function handleInvite(
     return
   }
 
-  // Use invite
-  const { data: inviteResult, error: inviteError } = await useGameInvite(
-    game.id,
-    user.id,
-    invitedUsername
-  )
-
-  if (inviteError || !inviteResult) {
-    addMessage({
-      type: "error",
-      content: `Failed to send invite: ${inviteError || "Unknown error"}`,
-      timestamp: Date.now(),
+  try {
+    // Call backend API to create invite and get invite URL
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"
+    const userId = farcasterContext.auth.user ? `farcaster_${farcasterContext.auth.user.fid}` : undefined
+    
+    const response = await fetch(`${baseUrl}/api/game/invite`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        gameId: gameState.currentGameId,
+        inviterUserId: userId,
+        friendHandle: invitedUsername
+      })
     })
-    return
-  }
 
-  if (inviteResult.error) {
-    addMessage({
-      type: "error",
-      content: inviteResult.error,
-      timestamp: Date.now(),
-    })
-    return
-  }
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || "Failed to create invite")
+    }
 
-  // Compose cast with Mini App URL
-  const miniAppUrl = "https://farcaster.xyz/miniapps/lgcZHUGhSVly/writecast"
-  const gameUrl = `${miniAppUrl}?code=${gameState.currentGameId}`
-  
-  const castText = `${invitedUsername} I need your help! 🆘
+    const inviteData = await response.json()
+
+    // Compose cast with invite URL from backend
+    const castText = `${invitedUsername} I need your help! 🆘
 
 Can you solve this word puzzle I'm stuck on?
 Game: ${gameState.currentGameId}
 
 If you win, we both earn bonus points! 🎯`
 
-  try {
     await farcasterContext.shareGame(gameState.currentGameId, "invite", {
       text: castText,
-      embeds: [gameUrl],
+      embeds: [inviteData.inviteUrl],
       mentionedUsers: [invitedUsername]
     })
 
@@ -1015,8 +1010,8 @@ HELP REQUESTED! 📞
 Invited: ${invitedUsername}
 Game: ${gameState.currentGameId}
 
-✓ You now have 2 attempts remaining!
-(1 original + 1 bonus from invite)
+✓ You now have 4 attempts total!
+(3 original + 1 bonus from invite)
 
 If ${invitedUsername} wins, you both earn bonus points!
 
@@ -1027,7 +1022,7 @@ Continue guessing below! 🚀
   } catch (error) {
     addMessage({
       type: "error",
-      content: `Failed to compose cast: ${error instanceof Error ? error.message : "Unknown error"}`,
+      content: `Failed to send invite: ${error instanceof Error ? error.message : "Unknown error"}`,
       timestamp: Date.now(),
     })
   }
@@ -1389,7 +1384,31 @@ async function handleShare(args: string[], addMessage: (msg: CliMessage) => void
       timestamp: Date.now(),
     })
 
-    await farcasterContext.shareGame(gameId, "created")
+    // Call backend API to get share URL and track the share
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"
+    const userId = farcasterContext.auth.user ? `farcaster_${farcasterContext.auth.user.fid}` : undefined
+    
+    const response = await fetch(`${baseUrl}/api/game/share`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        gameId: gameId,
+        userId: userId
+      })
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to get share URL from backend")
+    }
+
+    const shareData = await response.json()
+    
+    // Use the share URL from backend for the embed
+    await farcasterContext.shareGame(gameId, "created", {
+      embeds: [shareData.shareUrl]
+    })
 
     // Trigger success haptic feedback for share
     await terminalHaptics.shareSuccess()

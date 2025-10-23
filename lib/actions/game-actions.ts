@@ -436,3 +436,126 @@ export async function getPlayerStats(username: string) {
 
   return { data: user, error: null }
 }
+
+// ============================================================================
+// SHARE & INVITE TRACKING FUNCTIONS
+// ============================================================================
+
+export async function recordGameShare(gameId: string, userId?: string) {
+  const supabase = await createClient()
+
+  const { data, error } = await supabase
+    .from("game_shares")
+    .insert({
+      game_id: gameId,
+      shared_by_user_id: userId || null,
+      share_platform: "farcaster",
+      share_url: `${process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"}/api/game/embed/${gameId}`
+    })
+    .select()
+    .single()
+
+  if (error) {
+    return { data: null, error: error.message }
+  }
+
+  return { data, error: null }
+}
+
+export async function createGameInvite(gameId: string, inviterUserId: string, friendHandle: string) {
+  const supabase = await createClient()
+
+  // Check if inviter already has an invite for this game
+  const { data: existingInvite } = await supabase
+    .from("game_invites")
+    .select("*")
+    .eq("game_id", gameId)
+    .eq("inviter_player_id", inviterUserId)
+    .single()
+
+  if (existingInvite) {
+    return { data: null, error: "You have already invited someone for this game" }
+  }
+
+  // Create invite record
+  const { data: invite, error } = await supabase
+    .from("game_invites")
+    .insert({
+      game_id: gameId,
+      inviter_player_id: inviterUserId,
+      invited_username: friendHandle.replace('@', ''),
+      status: 'pending'
+    })
+    .select()
+    .single()
+
+  if (error) {
+    return { data: null, error: error.message }
+  }
+
+  // Grant +1 attempt to inviter immediately
+  const { error: sessionError } = await supabase
+    .from("game_sessions")
+    .upsert({
+      game_id: gameId,
+      player_id: inviterUserId,
+      status: 'in_progress',
+      has_used_invite: true,
+      bonus_attempts: 1,
+      invite_id: invite.id
+    }, {
+      onConflict: 'game_id,player_id'
+    })
+
+  if (sessionError) {
+    console.error("Failed to grant bonus attempt:", sessionError)
+    // Don't fail the request if this fails
+  }
+
+  return { data: invite, error: null }
+}
+
+export async function awardInviteBonus(inviteId: string) {
+  const supabase = await createClient()
+
+  // Get invite details
+  const { data: invite, error: inviteError } = await supabase
+    .from("game_invites")
+    .select("*")
+    .eq("id", inviteId)
+    .eq("status", "accepted")
+    .single()
+
+  if (inviteError || !invite) {
+    return { data: null, error: "Invite not found or not accepted" }
+  }
+
+  // Award bonus points to inviter
+  const { error: pointsError } = await supabase
+    .from("users")
+    .update({
+      total_points_earned: supabase.sql`total_points_earned + 2`,
+      updated_at: new Date().toISOString()
+    })
+    .eq("id", invite.inviter_player_id)
+
+  if (pointsError) {
+    return { data: null, error: pointsError.message }
+  }
+
+  // Update invite to completed
+  const { error: updateError } = await supabase
+    .from("game_invites")
+    .update({
+      status: 'completed',
+      inviter_earned_points: 2,
+      completed_at: new Date().toISOString()
+    })
+    .eq("id", inviteId)
+
+  if (updateError) {
+    return { data: null, error: updateError.message }
+  }
+
+  return { data: { pointsAwarded: 2 }, error: null }
+}

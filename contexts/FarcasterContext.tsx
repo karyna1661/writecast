@@ -162,45 +162,71 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
       }
 
       let text = ""
-      // Use Farcaster Mini App URL instead of direct game URL
-      const miniAppUrl = "https://farcaster.xyz/miniapps/lgcZHUGhSVly/writecast"
-      const playUrl = `${miniAppUrl}?code=${gameCode}`
+      let embedUrl = ""
       
-      // Try to get game metadata for better sharing
-      let gameMetadata = null
+      // Get share URL from backend API
       try {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"
-        const response = await fetch(`${baseUrl}/api/game/${gameCode}`)
+        const userId = auth.user ? `farcaster_${auth.user.fid}` : undefined
+        
+        const response = await fetch(`${baseUrl}/api/game/share`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            gameId: gameCode,
+            userId: userId
+          })
+        })
+        
         if (response.ok) {
-          gameMetadata = await response.json()
+          const shareData = await response.json()
+          embedUrl = shareData.shareUrl
+          
+          // Try to get game metadata for better sharing
+          const gameMetadata = shareData
+          
+          switch (template) {
+            case "created":
+              const gameMode = gameMetadata.gameMode === "fill-blank" ? "Fill-in-Blank" : "Frame-the-Word"
+              text = `🎮 I just created a ${gameMode} word game on Writecast!\n\nGame Code: ${gameCode}\nCan you guess my hidden word?\n\nClick "Play Now" to start! 🤔`
+              break
+            case "won":
+              text = `🎉 I just won a word game on Writecast!\n\nGame: ${gameCode}\nPlay it yourself and see if you can beat my score! 🏆`
+              break
+            case "invite":
+              // Use custom text/embeds from options if provided
+              text = options?.text || `🎮 Join me in this word game!\n\nGame: ${gameCode}\nLet's see who can solve it first!`
+              break
+          }
+        } else {
+          throw new Error("Failed to get share URL from backend")
         }
       } catch (error) {
-        console.warn("Could not fetch game metadata:", error)
-      }
-      
-      switch (template) {
-        case "created":
-          if (gameMetadata) {
-            const gameMode = gameMetadata.mode === "fill-blank" ? "Fill-in-Blank" : "Frame-the-Word"
-            text = `🎮 I just created a ${gameMode} word game on Writecast!\n\nGame Code: ${gameCode}\nCan you guess my hidden word?\n\nClick "Play Now" to start! 🤔`
-          } else {
+        console.warn("Could not fetch share URL from backend:", error)
+        // Fallback to direct Mini App URL
+        const miniAppUrl = "https://farcaster.xyz/miniapps/lgcZHUGhSVly/writecast"
+        embedUrl = `${miniAppUrl}?code=${gameCode}`
+        
+        switch (template) {
+          case "created":
             text = `🎮 I just created a word game on Writecast!\n\nGame Code: ${gameCode}\nCan you guess my hidden word?\n\nClick "Play Now" to start! 🤔`
-          }
-          break
-        case "won":
-          text = `🎉 I just won a word game on Writecast!\n\nGame: ${gameCode}\nPlay it yourself and see if you can beat my score! 🏆`
-          break
-        case "invite":
-          // Use custom text/embeds from options if provided
-          text = options?.text || `🎮 Join me in this word game!\n\nGame: ${gameCode}\nLet's see who can solve it first!`
-          break
+            break
+          case "won":
+            text = `🎉 I just won a word game on Writecast!\n\nGame: ${gameCode}\nPlay it yourself and see if you can beat my score! 🏆`
+            break
+          case "invite":
+            text = options?.text || `🎮 Join me in this word game!\n\nGame: ${gameCode}\nLet's see who can solve it first!`
+            break
+        }
       }
 
-      console.log("composeCast called with:", { text, playUrl, options })
+      console.log("composeCast called with:", { text, embedUrl, options })
       
-      // Compose cast with text and proper embed URL for Frame
+      // Compose cast with text and proper embed URL
       await farcasterSDK.actions.composeCast(text, {
-        embeds: options?.embeds || [playUrl],
+        embeds: options?.embeds || [embedUrl],
         ...options
       })
     } catch (error) {
