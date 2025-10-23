@@ -162,13 +162,14 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
       }
 
       let text = ""
-      const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"
-      // Fix: Use proper game URL format
-      const playUrl = `${baseUrl}/play/${gameCode}`
+      // Use Farcaster Mini App URL instead of direct game URL
+      const miniAppUrl = "https://farcaster.xyz/miniapps/lgcZHUGhSVly/writecast"
+      const playUrl = `${miniAppUrl}?code=${gameCode}`
       
       // Try to get game metadata for better sharing
       let gameMetadata = null
       try {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"
         const response = await fetch(`${baseUrl}/api/game/${gameCode}`)
         if (response.ok) {
           gameMetadata = await response.json()
@@ -195,6 +196,8 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
           break
       }
 
+      console.log("composeCast called with:", { text, playUrl, options })
+      
       // Compose cast with text and proper embed URL for Frame
       await farcasterSDK.actions.composeCast(text, {
         embeds: options?.embeds || [playUrl],

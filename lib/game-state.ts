@@ -14,6 +14,9 @@ export interface GameState {
   currentGame: { hiddenWord: string; masterpiece: string; mode: GameMode } | null
   guess: string
   attempts: number
+  
+  // Invite state
+  invitedFriend: boolean
 }
 
 export const initialGameState: GameState = {
@@ -26,6 +29,7 @@ export const initialGameState: GameState = {
   currentGame: null,
   guess: "",
   attempts: 0,
+  invitedFriend: false,
 }
 
 export const MOCK_GAMES: Record<string, { hiddenWord: string; masterpiece: string; mode: GameMode }> = {

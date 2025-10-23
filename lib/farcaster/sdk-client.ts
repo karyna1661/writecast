@@ -53,8 +53,16 @@ export const farcasterSDK = {
     },
     composeCast: async (text: string, options?: any) => {
       if (!isFarcasterAvailable()) throw new Error("SDK not available")
-      // Pass through both text and options if supported by the SDK
-      return await rateLimiter.throttle(() => (sdk as any).actions.composeCast(text, options))
+      console.log("composeCast called with:", { text, options })
+      
+      // Try both formats in case SDK signature changed
+      try {
+        return await rateLimiter.throttle(() => (sdk as any).actions.composeCast(text, options))
+      } catch (error) {
+        console.error("composeCast failed, trying object format:", error)
+        // Try object format: { text, embeds }
+        return await rateLimiter.throttle(() => (sdk as any).actions.composeCast({ text, embeds: options?.embeds }))
+      }
     },
     openMiniApp: async (options: any) => {
       if (!isFarcasterAvailable()) throw new Error("SDK not available")

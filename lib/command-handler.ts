@@ -829,11 +829,24 @@ ${"━".repeat(60)}`,
           remainingAttempts,
           gameStateAttempts: gameState.attempts
         })
-        let message = `Incorrect! Attempts: ${result.attempt_number}/${result.max_attempts || 3}\nAttempts remaining: ${remainingAttempts}\nTry again: guess <word>`
         
-        // Show invite prompt if on 3rd wrong attempt and haven't used invite
-        if (result.attempt_number === 3 && result.can_invite && farcasterContext?.auth?.isAuthenticated) {
-          message += `\n\n💡 Out of attempts! Use 'invite @friend' to get 1 bonus attempt and keep playing!`
+        // Calculate attempts left considering invite bonus
+        const maxAttempts = gameState.invitedFriend ? 4 : 3
+        const attemptsLeft = maxAttempts - result.attempt_number
+        
+        let message = `Incorrect! Attempts: ${result.attempt_number}/${maxAttempts}\nAttempts remaining: ${attemptsLeft}\nTry again: guess <word>`
+        
+        // Show invite hint after 2nd failed attempt (before final attempt)
+        if (result.attempt_number === 2 && !gameState.invitedFriend && farcasterContext?.auth?.isAuthenticated) {
+          message += `\n\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+💡 TIP: Running out of attempts?
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Use 'invite @friend' for 1 extra attempt!
+Or continue guessing without inviting.
+
+Note: 1 attempt left.
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`
         }
 
         addMessage({
@@ -861,6 +874,35 @@ async function handleInvite(
     addMessage({
       type: "error",
       content: "No active game! Use 'play <gameId>' to start a game first.",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  // Check if already invited (prevent multiple invites)
+  if (gameState.invitedFriend) {
+    addMessage({
+      type: "error",
+      content: "You've already invited a friend to this game. Only 1 invite per game.",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  // Check attempts used (must be 2 to invite)
+  if (gameState.attempts < 2) {
+    addMessage({
+      type: "error",
+      content: "You can only use 'invite' before your final attempt (after 2 failed guesses).",
+      timestamp: Date.now(),
+    })
+    return
+  }
+
+  if (gameState.attempts >= 3) {
+    addMessage({
+      type: "error",
+      content: "Too late! You've already used all your attempts.",
       timestamp: Date.now(),
     })
     return
@@ -937,16 +979,16 @@ async function handleInvite(
     return
   }
 
-  // Compose cast with embedded game
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"
-  const gameUrl = `${baseUrl}/play/${gameState.currentGameId}`
+  // Compose cast with Mini App URL
+  const miniAppUrl = "https://farcaster.xyz/miniapps/lgcZHUGhSVly/writecast"
+  const gameUrl = `${miniAppUrl}?code=${gameState.currentGameId}`
   
   const castText = `${invitedUsername} I need your help! 🆘
 
 Can you solve this word puzzle I'm stuck on?
 Game: ${gameState.currentGameId}
 
-If you win, we both earn points! 🎯`
+If you win, we both earn bonus points! 🎯`
 
   try {
     await farcasterContext.shareGame(gameState.currentGameId, "invite", {
@@ -955,23 +997,30 @@ If you win, we both earn points! 🎯`
       mentionedUsers: [invitedUsername]
     })
 
-  // Trigger success haptic feedback
-  await terminalHaptics.success()
+    // Update game state: Mark invite used
+    setGameState({
+      ...gameState,
+      invitedFriend: true,
+    })
 
-  addMessage({
-    type: "success",
-    content: `
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+    // Trigger success haptic feedback
+    await terminalHaptics.success()
+
+    addMessage({
+      type: "success",
+      content: `━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 HELP REQUESTED! 📞
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 Invited: ${invitedUsername}
 Game: ${gameState.currentGameId}
 
-You now have 4 total attempts!
+✓ You now have 2 attempts remaining!
+(1 original + 1 bonus from invite)
+
 If ${invitedUsername} wins, you both earn bonus points!
 
-Cast composed - share it now! 🚀
+Continue guessing below! 🚀
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━`,
       timestamp: Date.now(),
     })
@@ -979,8 +1028,8 @@ Cast composed - share it now! 🚀
     addMessage({
       type: "error",
       content: `Failed to compose cast: ${error instanceof Error ? error.message : "Unknown error"}`,
-    timestamp: Date.now(),
-  })
+      timestamp: Date.now(),
+    })
   }
 }
 
