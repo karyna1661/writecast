@@ -58,21 +58,6 @@ Type 'help' to see all commands, or try:
     }
   }, [farcaster.auth.isLoading])
 
-  // Signal SDK ready when the main UI is fully mounted
-  useEffect(() => {
-    console.log("Page useEffect triggered, isLoading:", farcaster.auth.isLoading)
-    if (!farcaster.auth.isLoading) {
-      console.log("SDK not loading, scheduling ready signal...")
-      // Small delay to ensure all UI components are rendered
-      const timer = setTimeout(() => {
-        console.log("Calling signalReady...")
-        farcaster.signalReady()
-      }, 100)
-
-      return () => clearTimeout(timer)
-    }
-  }, [farcaster.auth.isLoading])
-
   const addMessage = (msg: CliMessage) => {
     setMessages((prev) => [...prev, msg])
   }

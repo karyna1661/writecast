@@ -49,10 +49,12 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        // Note: sdk.actions.ready() will be called from the main page component
-        // after the UI is fully mounted to ensure proper timing
+        // **CRITICAL: Call ready() FIRST, before anything else**
+        console.log("Signaling SDK ready...")
+        await sdk.actions.ready()
+        console.log("SDK ready signal sent successfully")
         
-        // Then get user context
+        // **THEN** get user context
         try {
           // Try to get user context from SDK first (most efficient)
           const context = await sdk.context
