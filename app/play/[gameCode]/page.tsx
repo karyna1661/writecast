@@ -59,6 +59,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-export default function PlayGamePage({ params }: Props) {
-  return <PlayGameClient gameCode={params.gameCode} />
+export default async function PlayGamePage({ params }: Props) {
+  const gameCode = params.gameCode.toUpperCase()
+  
+  // Fetch game data server-side to pass to client component
+  let initialGame = null
+  try {
+    const { data: game, error } = await getGameByCode(gameCode)
+    if (!error && game) {
+      initialGame = game
+    }
+  } catch (error) {
+    console.error("Failed to fetch game server-side:", error)
+    // Continue without initial game - client will handle the error
+  }
+
+  return <PlayGameClient gameCode={params.gameCode} initialGame={initialGame} />
 }

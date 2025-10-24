@@ -3,6 +3,10 @@
 import { createClient } from "@/lib/supabase/client"
 import type { GameMode } from "@/lib/game-state"
 
+// Simple in-memory cache for game data
+const gameCache = new Map<string, { data: Game; timestamp: number }>()
+const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
 // ============================================================================
 // TYPES
 // ============================================================================
@@ -134,6 +138,15 @@ export async function getOrCreateUser(userInfo: string | { userId: string; usern
 // ============================================================================
 
 export async function getGameByCode(code: string) {
+  const cacheKey = code.toUpperCase()
+  const now = Date.now()
+  
+  // Check cache first
+  const cached = gameCache.get(cacheKey)
+  if (cached && (now - cached.timestamp) < CACHE_DURATION) {
+    return { data: cached.data, error: null }
+  }
+
   const supabase = createClient()
 
   const { data, error } = await supabase
@@ -147,7 +160,21 @@ export async function getGameByCode(code: string) {
     return { data: null, error: error.message }
   }
 
-  return { data: data as Game, error: null }
+  const game = data as Game
+  
+  // Cache the result
+  gameCache.set(cacheKey, { data: game, timestamp: now })
+  
+  // Clean up old cache entries periodically
+  if (gameCache.size > 100) {
+    for (const [key, value] of gameCache.entries()) {
+      if ((now - value.timestamp) > CACHE_DURATION) {
+        gameCache.delete(key)
+      }
+    }
+  }
+
+  return { data: game, error: null }
 }
 
 export async function getAllGames(playerId?: string) {

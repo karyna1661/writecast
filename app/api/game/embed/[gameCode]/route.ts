@@ -133,10 +133,19 @@ export async function GET(
         .play-button:hover {
             background: #5a6fd8;
         }
+        .game-icon {
+            max-width: 120px;
+            height: auto;
+            margin: 0 auto 20px auto;
+            display: block;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <img src="${ogImageUrl}" alt="Writecast Game Icon" class="game-icon" />
         <h1>🎮 Writecast Game</h1>
         <div class="game-code">${gameCode.toUpperCase()}</div>
         <div class="game-type">${game.game_type === 'fill-blank' ? 'Fill-in-Blank' : 'Frame-the-Word'} Word Game</div>
@@ -149,7 +158,7 @@ export async function GET(
     return new NextResponse(html, {
       headers: {
         'Content-Type': 'text/html',
-        'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
+        'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600', // Cache for 24 hours, stale-while-revalidate for 1 hour
       },
     })
   } catch (error) {
