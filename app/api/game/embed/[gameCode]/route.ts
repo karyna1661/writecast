@@ -50,20 +50,15 @@ export async function GET(
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Writecast Game - ${gameCode.toUpperCase()}</title>
     
+    <!-- Farcaster Frame Meta Tags -->
+    <meta property="fc:frame" content="vNext" />
+    <meta property="fc:frame:image" content="${ogImageUrl}" />
+    <meta property="fc:frame:button:1" content="Play Now" />
+    <meta property="fc:frame:button:1:action" content="link" />
+    <meta property="fc:frame:button:1:target" content="${fullMiniAppUrl}" />
+    
     <!-- Farcaster Mini App Meta Tags -->
     <meta name="fc:miniapp" content='{
-      "version": "1",
-      "imageUrl": "${ogImageUrl}",
-      "button": {
-        "title": "Play Now",
-        "action": {
-          "type": "launch_miniapp",
-          "url": "${fullMiniAppUrl}"
-        }
-      }
-    }' />
-    
-    <meta name="fc:frame" content='{
       "version": "1",
       "imageUrl": "${ogImageUrl}",
       "button": {
