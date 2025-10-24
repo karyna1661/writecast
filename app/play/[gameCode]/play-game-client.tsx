@@ -176,6 +176,25 @@ Example: guess innovation`,
     }
 
     loadGame()
+    
+    // Safety timeout: Force loading to false after 5 seconds
+    const loadingTimeout = setTimeout(() => {
+      setIsLoading(prev => {
+        if (prev) {
+          console.warn("Game loading timeout - forcing display")
+          setMessages([{
+            type: "error",
+            content: `Loading timeout. Please try refreshing the page or check your connection.
+            
+Game Code: ${gameCode}`,
+            timestamp: Date.now(),
+          }])
+        }
+        return false
+      })
+    }, 5000)
+    
+    return () => clearTimeout(loadingTimeout)
   }, [gameCode, initialGame])
 
   const addMessage = (msg: CliMessage) => {

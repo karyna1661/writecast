@@ -49,15 +49,33 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        // **CRITICAL: Call ready() FIRST, before anything else**
+        // **CRITICAL: Call ready() FIRST with timeout protection**
         console.log("Signaling SDK ready...")
-        await sdk.actions.ready()
-        console.log("SDK ready signal sent successfully")
         
-        // **THEN** get user context
         try {
-          // Try to get user context from SDK first (most efficient)
-          const context = await sdk.context
+          // Add 3-second timeout to SDK ready call
+          await Promise.race([
+            sdk.actions.ready(),
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('SDK ready timeout')), 3000)
+            )
+          ])
+          console.log("SDK ready signal sent successfully")
+        } catch (readyError) {
+          console.warn("SDK ready call failed or timed out:", readyError)
+          // Continue anyway - some SDK implementations don't need ready()
+        }
+        
+        // **THEN** get user context with timeout
+        try {
+          // Add 2-second timeout to context fetch
+          const context = await Promise.race([
+            sdk.context,
+            new Promise((_, reject) => 
+              setTimeout(() => reject(new Error('Context fetch timeout')), 2000)
+            )
+          ])
+          
           if (process.env.NODE_ENV === 'development') {
             console.log("SDK context:", context)
           }
@@ -95,6 +113,19 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
     }
 
     initSDK()
+    
+    // Safety timeout: Force loading to false after 5 seconds no matter what
+    const safetyTimeout = setTimeout(() => {
+      setAuth(prev => {
+        if (prev.isLoading) {
+          console.warn("SDK initialization timeout - forcing standalone mode")
+          return { ...prev, isLoading: false }
+        }
+        return prev
+      })
+    }, 5000)
+    
+    return () => clearTimeout(safetyTimeout)
   }, [])
 
   const login = async () => {

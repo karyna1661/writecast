@@ -109,7 +109,19 @@ Type 'help' to see all commands, or try:
     await handleCommand(input, gameState, setGameState, addMessage, farcaster)
   }
 
-  // Show loading state while SDK initializes
+  // Add maximum loading timeout - prevent infinite splash screen
+  useEffect(() => {
+    const maxLoadingTimeout = setTimeout(() => {
+      if (farcaster.auth.isLoading) {
+        console.warn("Main page loading timeout - SDK initialization took too long")
+        // The FarcasterContext safety timeout should handle this, but this is extra insurance
+      }
+    }, 6000) // 6 seconds max (1 second more than FarcasterContext timeout)
+    
+    return () => clearTimeout(maxLoadingTimeout)
+  }, [farcaster.auth.isLoading])
+
+  // Show loading state while SDK initializes (max 5 seconds)
   if (farcaster.auth.isLoading) {
     return (
       <TerminalWindow>
@@ -117,9 +129,12 @@ Type 'help' to see all commands, or try:
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-500 mx-auto mb-4"></div>
-            <p className="text-green-400">Initializing Farcaster Mini App...</p>
+            <p className="text-green-400">Initializing Writecast...</p>
             <p className="text-gray-500 text-sm mt-2">
               {!farcaster.isAvailable ? "Running in standalone mode" : "Connecting to Farcaster..."}
+            </p>
+            <p className="text-gray-600 text-xs mt-4">
+              This should only take a moment...
             </p>
           </div>
         </div>

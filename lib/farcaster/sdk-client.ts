@@ -140,13 +140,37 @@ export const farcasterSDK = {
 
 export function isFarcasterAvailable(): boolean {
   try {
-    return (
-      typeof window !== "undefined" && 
+    // Check if we're in a browser environment
+    if (typeof window === "undefined") {
+      return false
+    }
+    
+    // Check if we're on desktop (not in Farcaster mobile app)
+    // Desktop browsers won't have the Farcaster SDK properly initialized
+    const isDesktop = !/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    )
+    
+    // Quick return for obvious desktop cases
+    if (isDesktop && !window.location.href.includes('farcaster')) {
+      console.log("Desktop browser detected - Farcaster SDK not available")
+      return false
+    }
+    
+    // Check if SDK exists and has required functions
+    const sdkAvailable = (
       typeof sdk !== "undefined" && 
       sdk !== null &&
       sdk.actions &&
       typeof sdk.actions.ready === "function"
     )
+    
+    if (!sdkAvailable) {
+      console.log("Farcaster SDK object not properly initialized")
+      return false
+    }
+    
+    return true
   } catch (error) {
     console.warn("Error checking Farcaster availability:", error)
     return false
