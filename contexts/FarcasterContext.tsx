@@ -38,27 +38,30 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
   const [isAvailable, setIsAvailable] = useState(false)
 
   useEffect(() => {
+    console.log("FarcasterContext: Starting initialization")
     const initSDK = async () => {
       try {
         const available = isFarcasterAvailable()
+        console.log("FarcasterContext: SDK available?", available)
         setIsAvailable(available)
         
         if (!available) {
-          console.log("Farcaster SDK not available - running in standalone mode")
+          console.log("FarcasterContext: SDK not available - running in standalone mode")
           setAuth(prev => ({ ...prev, isLoading: false }))
           return
         }
 
         // **FAST INITIALIZATION: Skip complex SDK calls during startup**
-        console.log("Farcaster SDK detected - initializing in background")
+        console.log("FarcasterContext: SDK detected - initializing in background")
         
         // Set loading to false immediately to show UI
+        console.log("FarcasterContext: Setting isLoading to false")
         setAuth(prev => ({ ...prev, isLoading: false }))
         
         // Do SDK initialization in background (non-blocking)
         setTimeout(async () => {
           try {
-            console.log("Background SDK initialization...")
+            console.log("FarcasterContext: Background SDK initialization...")
             
             // Try to get user context without blocking
             const context = await Promise.race([
@@ -81,15 +84,15 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
                 user,
                 token: null,
               }))
-              console.log("Background authentication successful:", user.username)
+              console.log("FarcasterContext: Background authentication successful:", user.username)
             }
           } catch (error) {
-            console.log("Background SDK initialization failed - continuing as guest")
+            console.log("FarcasterContext: Background SDK initialization failed - continuing as guest")
           }
         }, 100) // Small delay to let UI render first
         
       } catch (error) {
-        console.error("SDK initialization failed:", error)
+        console.error("FarcasterContext: SDK initialization failed:", error)
         setAuth(prev => ({ ...prev, isLoading: false }))
       }
     }

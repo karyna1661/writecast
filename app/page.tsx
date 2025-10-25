@@ -122,7 +122,9 @@ Type 'help' to see all commands, or try:
   }, [farcaster.auth.isLoading])
 
   // Show loading state while SDK initializes (max 5 seconds)
+  console.log("Main page: farcaster.auth.isLoading =", farcaster.auth.isLoading)
   if (farcaster.auth.isLoading) {
+    console.log("Main page: Showing loading screen")
     return (
       <TerminalWindow>
         <TerminalHeader />
@@ -135,6 +137,9 @@ Type 'help' to see all commands, or try:
             </p>
             <p className="text-gray-600 text-xs mt-4">
               This should only take a moment...
+            </p>
+            <p className="text-gray-600 text-xs mt-2">
+              Debug: isLoading={farcaster.auth.isLoading.toString()}
             </p>
           </div>
         </div>
