@@ -47,7 +47,19 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
         
         if (!available) {
           console.log("FarcasterContext: SDK not available - running in standalone mode")
-          setAuth(prev => ({ ...prev, isLoading: false }))
+          // Create a demo user for browser testing
+          const demoUser: FarcasterUser = {
+            fid: 99999,
+            username: "browser_user",
+            displayName: "Browser User",
+          }
+          setAuth({
+            isAuthenticated: true,
+            user: demoUser,
+            token: null,
+            isLoading: false,
+          })
+          console.log("FarcasterContext: Created demo user for browser testing")
           return
         }
 
@@ -98,6 +110,29 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
     }
 
     initSDK()
+    
+    // Safety timeout: Force loading to false after 3 seconds no matter what
+    const safetyTimeout = setTimeout(() => {
+      setAuth(prev => {
+        if (prev.isLoading) {
+          console.warn("FarcasterContext: Safety timeout - forcing demo mode")
+          const demoUser: FarcasterUser = {
+            fid: 99999,
+            username: "timeout_user",
+            displayName: "Timeout User",
+          }
+          return {
+            isAuthenticated: true,
+            user: demoUser,
+            token: null,
+            isLoading: false,
+          }
+        }
+        return prev
+      })
+    }, 3000)
+    
+    return () => clearTimeout(safetyTimeout)
   }, [])
 
   const login = async () => {

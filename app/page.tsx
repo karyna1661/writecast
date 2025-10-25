@@ -139,7 +139,10 @@ Type 'help' to see all commands, or try:
               This should only take a moment...
             </p>
             <p className="text-gray-600 text-xs mt-2">
-              Debug: isLoading={farcaster.auth.isLoading.toString()}
+              Debug: isLoading={farcaster.auth.isLoading.toString()}, available={farcaster.isAvailable.toString()}
+            </p>
+            <p className="text-gray-600 text-xs">
+              User: {farcaster.auth.user?.username || 'none'}
             </p>
           </div>
         </div>
