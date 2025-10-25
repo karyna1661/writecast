@@ -39,6 +39,8 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     console.log("FarcasterContext: Starting initialization")
+    console.log("FarcasterContext: User agent:", navigator.userAgent)
+    console.log("FarcasterContext: SDK object:", typeof sdk !== "undefined" ? "exists" : "undefined")
     const initSDK = async () => {
       try {
         const available = isFarcasterAvailable()
@@ -76,13 +78,15 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
           try {
             console.log("FarcasterContext: Background SDK initialization...")
             
-            // Try to get user context without blocking
+            // Try to get user context without blocking - increased timeout for mobile
+            console.log("FarcasterContext: Attempting to fetch SDK context...")
             const context = await Promise.race([
               sdk.context,
               new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Context fetch timeout')), 1000)
+                setTimeout(() => reject(new Error('Context fetch timeout')), 3000) // Increased from 1000ms
               )
             ])
+            console.log("FarcasterContext: SDK context fetched successfully:", context)
             
             if (context?.user) {
               const user: FarcasterUser = {
@@ -101,6 +105,7 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
             }
           } catch (error) {
             console.log("FarcasterContext: Background SDK initialization failed - continuing as guest")
+            console.log("FarcasterContext: Error details:", error)
           }
         }, 100) // Small delay to let UI render first
         

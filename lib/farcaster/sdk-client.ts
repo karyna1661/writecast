@@ -145,19 +145,7 @@ export function isFarcasterAvailable(): boolean {
       return false
     }
     
-    // Check if we're on desktop (not in Farcaster mobile app)
-    // Desktop browsers won't have the Farcaster SDK properly initialized
-    const isDesktop = !/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
-      navigator.userAgent
-    )
-    
-    // Quick return for obvious desktop cases - be more aggressive
-    if (isDesktop) {
-      console.log("Desktop browser detected - Farcaster SDK not available")
-      return false
-    }
-    
-    // Check if SDK exists and has required functions
+    // PRIMARY CHECK: SDK object existence (most reliable)
     const sdkAvailable = (
       typeof sdk !== "undefined" && 
       sdk !== null &&
@@ -165,12 +153,26 @@ export function isFarcasterAvailable(): boolean {
       typeof sdk.actions.ready === "function"
     )
     
-    if (!sdkAvailable) {
-      console.log("Farcaster SDK object not properly initialized")
-      return false
+    // If SDK is available, we're in a Farcaster environment
+    if (sdkAvailable) {
+      console.log("Farcaster SDK detected and available")
+      return true
     }
     
-    return true
+    // SECONDARY CHECK: User agent (only as hint for early detection)
+    const isLikelyMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    )
+    
+    if (isLikelyMobile) {
+      // On mobile but SDK not ready yet - might still load
+      console.log("Mobile device detected but SDK not ready yet - optimistically returning true")
+      return true // Optimistically return true and wait for SDK
+    }
+    
+    // Desktop browser - SDK not available
+    console.log("Desktop browser detected - Farcaster SDK not available")
+    return false
   } catch (error) {
     console.warn("Error checking Farcaster availability:", error)
     return false
