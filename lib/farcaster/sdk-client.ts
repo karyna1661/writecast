@@ -151,8 +151,8 @@ export function isFarcasterAvailable(): boolean {
       navigator.userAgent
     )
     
-    // Quick return for obvious desktop cases
-    if (isDesktop && !window.location.href.includes('farcaster')) {
+    // Quick return for obvious desktop cases - be more aggressive
+    if (isDesktop) {
       console.log("Desktop browser detected - Farcaster SDK not available")
       return false
     }

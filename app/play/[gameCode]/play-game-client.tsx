@@ -66,8 +66,8 @@ export default function PlayGameClient({ gameCode, initialGame }: PlayGameClient
       try {
         // If we have initial game data, use it immediately
         if (initialGame) {
-          // Trigger haptic feedback for deep link
-          await terminalHaptics.deepLinkOpened()
+          // Trigger haptic feedback for deep link (non-blocking)
+          terminalHaptics.deepLinkOpened().catch(() => {}) // Don't await - let it run in background
 
           // Auto-start the game with initial data
           setGameState(prev => ({
@@ -109,8 +109,8 @@ Example: guess innovation`,
         // Fallback: fetch game data client-side if no initial data
         setIsLoading(true)
         
-        // Trigger haptic feedback for deep link
-        await terminalHaptics.deepLinkOpened()
+        // Trigger haptic feedback for deep link (non-blocking)
+        terminalHaptics.deepLinkOpened().catch(() => {}) // Don't await - let it run in background
 
         const { data: game, error } = await getGameByCode(gameCode.toUpperCase())
 

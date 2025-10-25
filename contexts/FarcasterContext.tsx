@@ -49,63 +49,45 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        // **CRITICAL: Call ready() FIRST with timeout protection**
-        console.log("Signaling SDK ready...")
+        // **FAST INITIALIZATION: Skip complex SDK calls during startup**
+        console.log("Farcaster SDK detected - initializing in background")
         
-        try {
-          // Add 3-second timeout to SDK ready call
-          await Promise.race([
-            sdk.actions.ready(),
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('SDK ready timeout')), 3000)
-            )
-          ])
-          console.log("SDK ready signal sent successfully")
-        } catch (readyError) {
-          console.warn("SDK ready call failed or timed out:", readyError)
-          // Continue anyway - some SDK implementations don't need ready()
-        }
+        // Set loading to false immediately to show UI
+        setAuth(prev => ({ ...prev, isLoading: false }))
         
-        // **THEN** get user context with timeout
-        try {
-          // Add 2-second timeout to context fetch
-          const context = await Promise.race([
-            sdk.context,
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Context fetch timeout')), 2000)
-            )
-          ])
-          
-          if (process.env.NODE_ENV === 'development') {
-            console.log("SDK context:", context)
-          }
-          
-          if (context?.user) {
-            const user: FarcasterUser = {
-              fid: context.user.fid,
-              username: context.user.username || `user-${context.user.fid}`,
-              displayName: context.user.displayName || context.user.username || `user-${context.user.fid}`,
-            }
+        // Do SDK initialization in background (non-blocking)
+        setTimeout(async () => {
+          try {
+            console.log("Background SDK initialization...")
             
-            setAuth({
-              isAuthenticated: true,
-              user,
-              token: null, // Token can be fetched later if needed
-              isLoading: false,
-            })
-            if (process.env.NODE_ENV === 'development') {
-              console.log("Auto-authenticated user:", user.username)
+            // Try to get user context without blocking
+            const context = await Promise.race([
+              sdk.context,
+              new Promise((_, reject) => 
+                setTimeout(() => reject(new Error('Context fetch timeout')), 1000)
+              )
+            ])
+            
+            if (context?.user) {
+              const user: FarcasterUser = {
+                fid: context.user.fid,
+                username: context.user.username || `user-${context.user.fid}`,
+                displayName: context.user.displayName || context.user.username || `user-${context.user.fid}`,
+              }
+              
+              setAuth(prev => ({
+                ...prev,
+                isAuthenticated: true,
+                user,
+                token: null,
+              }))
+              console.log("Background authentication successful:", user.username)
             }
-          } else {
-            if (process.env.NODE_ENV === 'development') {
-              console.log("No user context found, staying as guest")
-            }
-            setAuth(prev => ({ ...prev, isLoading: false }))
+          } catch (error) {
+            console.log("Background SDK initialization failed - continuing as guest")
           }
-        } catch (contextError) {
-          console.warn("Could not get user context:", contextError)
-          setAuth(prev => ({ ...prev, isLoading: false }))
-        }
+        }, 100) // Small delay to let UI render first
+        
       } catch (error) {
         console.error("SDK initialization failed:", error)
         setAuth(prev => ({ ...prev, isLoading: false }))
@@ -113,19 +95,6 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
     }
 
     initSDK()
-    
-    // Safety timeout: Force loading to false after 5 seconds no matter what
-    const safetyTimeout = setTimeout(() => {
-      setAuth(prev => {
-        if (prev.isLoading) {
-          console.warn("SDK initialization timeout - forcing standalone mode")
-          return { ...prev, isLoading: false }
-        }
-        return prev
-      })
-    }, 5000)
-    
-    return () => clearTimeout(safetyTimeout)
   }, [])
 
   const login = async () => {
