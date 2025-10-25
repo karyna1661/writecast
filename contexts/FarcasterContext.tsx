@@ -48,18 +48,6 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
         if (!available) {
           console.log("FarcasterContext: SDK not available - running in standalone mode")
           
-          // CRITICAL: Still need to call ready() even if SDK not fully available
-          // The Farcaster frame wrapper expects this to dismiss splash screen
-          try {
-            if (typeof sdk !== "undefined" && sdk?.actions?.ready) {
-              console.log("FarcasterContext: Calling ready() for frame wrapper")
-              await sdk.actions.ready()
-              console.log("FarcasterContext: ready() called successfully")
-            }
-          } catch (readyError) {
-            console.warn("FarcasterContext: ready() call failed:", readyError)
-          }
-          
           // Create a demo user for browser testing
           const demoUser: FarcasterUser = {
             fid: 99999,
@@ -76,16 +64,8 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
           return
         }
 
-        // **FAST INITIALIZATION: Call ready() first, then initialize in background**
-        console.log("FarcasterContext: SDK detected - calling ready()")
-        
-        // CRITICAL: Call ready() to dismiss splash screen
-        try {
-          await sdk.actions.ready()
-          console.log("FarcasterContext: ready() called successfully")
-        } catch (readyError) {
-          console.warn("FarcasterContext: ready() call failed:", readyError)
-        }
+        // **FAST INITIALIZATION: Initialize in background**
+        console.log("FarcasterContext: SDK detected - initializing in background")
         
         // Set loading to false immediately to show UI
         console.log("FarcasterContext: Setting isLoading to false")

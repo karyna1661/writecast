@@ -2,6 +2,7 @@ import type React from "react"
 import "./globals.css"
 import { FarcasterProvider } from "@/contexts/FarcasterContext"
 import { Analytics } from "@vercel/analytics/react"
+import { ReadySignal } from "@/components/ready-signal"
 
 export const metadata = {
   title: "Writecast - CLI Word Game",
@@ -72,6 +73,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="font-mono antialiased" suppressHydrationWarning>
       <body suppressHydrationWarning>
+        <ReadySignal />
         <FarcasterProvider>
           {children}
         </FarcasterProvider>
