@@ -62,6 +62,8 @@ export default function PlayGameClient({ gameCode, initialGame }: PlayGameClient
   useEffect(() => {
     const loadGame = async () => {
       if (!gameCode) return
+      
+      console.log("PlayGameClient: Starting to load game", { gameCode, initialGame: !!initialGame })
 
       try {
         // If we have initial game data, use it immediately
@@ -107,12 +109,15 @@ Example: guess innovation`,
         }
 
         // Fallback: fetch game data client-side if no initial data
+        console.log("PlayGameClient: No initial game data, fetching client-side")
         setIsLoading(true)
         
         // Trigger haptic feedback for deep link (non-blocking)
         terminalHaptics.deepLinkOpened().catch(() => {}) // Don't await - let it run in background
 
+        console.log("PlayGameClient: Calling getGameByCode for", gameCode.toUpperCase())
         const { data: game, error } = await getGameByCode(gameCode.toUpperCase())
+        console.log("PlayGameClient: getGameByCode result", { game: !!game, error })
 
         if (error || !game) {
           setMessages([
