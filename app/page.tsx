@@ -123,6 +123,8 @@ Type 'help' to see all commands, or try:
 
   // Show loading state while SDK initializes (max 5 seconds)
   console.log("Main page: farcaster.auth.isLoading =", farcaster.auth.isLoading)
+  console.log("Main page: farcaster.auth.user =", farcaster.auth.user)
+  console.log("Main page: farcaster.isAvailable =", farcaster.isAvailable)
   if (farcaster.auth.isLoading) {
     console.log("Main page: Showing loading screen")
     return (
@@ -150,6 +152,7 @@ Type 'help' to see all commands, or try:
     )
   }
 
+  console.log("Main page: Rendering terminal (not loading)")
   return (
     <TerminalWindow>
       <TerminalHeader />
