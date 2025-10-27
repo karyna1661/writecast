@@ -41,9 +41,8 @@ export async function GET(
     // Generate OG image URL - use the new icon
     const ogImageUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"}/icon-512.png`
 
-    // Create HTML with Farcaster meta tags
-    const html = `
-<!DOCTYPE html>
+    // Create minimal HTML with just meta tags and immediate redirect script
+    const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -56,19 +55,6 @@ export async function GET(
     <meta property="fc:frame:button:1" content="Play Now" />
     <meta property="fc:frame:button:1:action" content="link" />
     <meta property="fc:frame:button:1:target" content="${fullMiniAppUrl}" />
-    
-    <!-- Farcaster Mini App Meta Tags -->
-    <meta name="fc:miniapp" content='{
-      "version": "1",
-      "imageUrl": "${ogImageUrl}",
-      "button": {
-        "title": "Play Now",
-        "action": {
-          "type": "launch_miniapp",
-          "url": "${fullMiniAppUrl}"
-        }
-      }
-    }' />
     
     <!-- Standard Open Graph Meta Tags -->
     <meta property="og:title" content="Writecast Game - ${gameCode.toUpperCase()}" />
@@ -83,77 +69,23 @@ export async function GET(
     <meta name="twitter:description" content="Can you guess the hidden word? Play this ${game.game_type === 'fill-blank' ? 'Fill-in-Blank' : 'Frame-the-Word'} word game!" />
     <meta name="twitter:image" content="${ogImageUrl}" />
     
-    <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .container {
-            background: white;
-            border-radius: 12px;
-            padding: 40px;
-            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
-            text-align: center;
-            max-width: 500px;
-        }
-        .game-code {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: #667eea;
-            margin: 20px 0;
-        }
-        .game-type {
-            font-size: 1.2em;
-            color: #666;
-            margin-bottom: 20px;
-        }
-        .play-button {
-            background: #667eea;
-            color: white;
-            border: none;
-            padding: 15px 30px;
-            border-radius: 8px;
-            font-size: 1.1em;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-block;
-            margin-top: 20px;
-        }
-        .play-button:hover {
-            background: #5a6fd8;
-        }
-        .game-icon {
-            max-width: 120px;
-            height: auto;
-            margin: 0 auto 20px auto;
-            display: block;
-            border-radius: 12px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-    </style>
+    <!-- Immediate redirect to Mini App -->
+    <script>
+        window.location.replace("${fullMiniAppUrl}");
+    </script>
+    
+    <!-- Fallback redirect if JS is disabled -->
+    <meta http-equiv="refresh" content="0; url=${fullMiniAppUrl}">
 </head>
 <body>
-    <div class="container">
-        <img src="${ogImageUrl}" alt="Writecast Game Icon" class="game-icon" />
-        <h1>🎮 Writecast Game</h1>
-        <div class="game-code">${gameCode.toUpperCase()}</div>
-        <div class="game-type">${game.game_type === 'fill-blank' ? 'Fill-in-Blank' : 'Frame-the-Word'} Word Game</div>
-        <p>Can you guess the hidden word? Click "Play Now" to start!</p>
-        <a href="${fullMiniAppUrl}" class="play-button">Play Now</a>
-    </div>
+    <p>Redirecting to game... <a href="${fullMiniAppUrl}">Click here if not redirected</a></p>
 </body>
 </html>`
 
     return new NextResponse(html, {
       headers: {
         'Content-Type': 'text/html',
-        'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600', // Cache for 24 hours, stale-while-revalidate for 1 hour
+        'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600',
       },
     })
   } catch (error) {
