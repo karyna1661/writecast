@@ -12,6 +12,16 @@ const nextConfig = {
   async headers() {
     return [
       {
+        source: '/:path*',
+        headers: [
+          // Allow embedding inside Farcaster/Warpcast frames
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self' https://farcaster.xyz https://client.farcaster.xyz https://warpcast.com https://client.warpcast.com"
+          },
+        ],
+      },
+      {
         source: '/.well-known/:path*',
         headers: [
           {
