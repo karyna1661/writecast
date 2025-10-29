@@ -1,7 +1,7 @@
 "use client"
 
 import React, { createContext, useContext, useEffect, useState } from "react"
-import { farcasterSDK, isFarcasterAvailable } from "@/lib/farcaster/sdk-client"
+import { farcasterSDK, isFarcasterAvailable, waitForFarcasterSDKReady } from "@/lib/farcaster/sdk-client"
 import { sdk } from "@farcaster/miniapp-sdk"
 import type { AuthState, FarcasterUser } from "@/lib/farcaster/types"
 
@@ -41,74 +41,57 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
     console.log("FarcasterContext: Starting initialization")
     console.log("FarcasterContext: User agent:", navigator.userAgent)
     console.log("FarcasterContext: SDK object:", typeof sdk !== "undefined" ? "exists" : "undefined")
+
     const initSDK = async () => {
       try {
-        const available = isFarcasterAvailable()
+        // wait for bridge with timeout but do not block UI forever
+        const available = await waitForFarcasterSDKReady({ timeoutMs: 12000, pollMs: 150, allowTimeoutResolve: true })
         console.log("FarcasterContext: SDK available?", available)
         setIsAvailable(available)
-        
+
         if (!available) {
-          console.log("FarcasterContext: SDK not available - running in standalone mode")
-          
-          // Create a demo user for browser testing
-          const demoUser: FarcasterUser = {
-            fid: 99999,
-            username: "browser_user",
-            displayName: "Browser User",
-          }
-          setAuth({
-            isAuthenticated: true,
-            user: demoUser,
-            token: null,
-            isLoading: false,
-          })
-          console.log("FarcasterContext: Created demo user for browser testing")
+          console.log("FarcasterContext: SDK not available - no guest yet; showing connecting state")
+          setAuth(prev => ({ ...prev, isLoading: false }))
           return
         }
 
-        // **FAST INITIALIZATION: Initialize in background**
-        console.log("FarcasterContext: SDK detected - initializing in background")
-        
-        // Set loading to false immediately to show UI
-        console.log("FarcasterContext: Setting isLoading to false")
-        setAuth(prev => ({ ...prev, isLoading: false }))
-        
-        // Do SDK initialization in background (non-blocking)
+        console.log("FarcasterContext: SDK detected - initializing and fetching context")
+
         setTimeout(async () => {
           try {
             console.log("FarcasterContext: Background SDK initialization...")
-            
-            // Try to get user context without blocking - increased timeout for mobile
             console.log("FarcasterContext: Attempting to fetch SDK context...")
             const context = await Promise.race([
-              sdk.context,
-              new Promise((_, reject) => 
-                setTimeout(() => reject(new Error('Context fetch timeout')), 3000) // Increased from 1000ms
+              (sdk as any).context,
+              new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Context fetch timeout')), 5000)
               )
             ])
             console.log("FarcasterContext: SDK context fetched successfully:", context)
-            
+
             if (context?.user) {
               const user: FarcasterUser = {
                 fid: context.user.fid,
                 username: context.user.username || `user-${context.user.fid}`,
                 displayName: context.user.displayName || context.user.username || `user-${context.user.fid}`,
               }
-              
+
               setAuth(prev => ({
                 ...prev,
                 isAuthenticated: true,
                 user,
                 token: null,
+                isLoading: false,
               }))
               console.log("FarcasterContext: Background authentication successful:", user.username)
             }
           } catch (error) {
             console.log("FarcasterContext: Background SDK initialization failed - continuing as guest")
             console.log("FarcasterContext: Error details:", error)
+            setAuth(prev => ({ ...prev, isLoading: false }))
           }
-        }, 100) // Small delay to let UI render first
-        
+        }, 100)
+
       } catch (error) {
         console.error("FarcasterContext: SDK initialization failed:", error)
         setAuth(prev => ({ ...prev, isLoading: false }))
@@ -116,8 +99,7 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
     }
 
     initSDK()
-    
-    // Safety timeout: Force loading to false after 3 seconds no matter what
+
     const safetyTimeout = setTimeout(() => {
       setAuth(prev => {
         if (prev.isLoading) {
@@ -137,32 +119,30 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
         return prev
       })
     }, 3000)
-    
+
     return () => clearTimeout(safetyTimeout)
   }, [])
 
   const login = async () => {
     try {
       setAuth(prev => ({ ...prev, isLoading: true }))
-      
+
       if (!isFarcasterAvailable()) {
         throw new Error("Farcaster SDK not available")
       }
 
       await farcasterSDK.actions.signIn()
-      
-      // Get token after sign in
+
       const tokenResult = await farcasterSDK.quickAuth.getToken()
       const token = tokenResult?.token || null
-      
+
       if (token) {
-        // TODO: Decode token to get user info
         const mockUser: FarcasterUser = {
           fid: 12345,
           username: "writecast_user",
           displayName: "Writecast User",
         }
-        
+
         setAuth({
           isAuthenticated: true,
           user: mockUser,
@@ -190,7 +170,7 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
   const getToken = async (): Promise<string | null> => {
     try {
       if (!isFarcasterAvailable()) return null
-      
+
       const result = await farcasterSDK.quickAuth.getToken()
       return result?.token || null
     } catch (error) {
@@ -205,7 +185,6 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Farcaster SDK not available")
       }
 
-      // Store current state before opening composer for faster restoration
       if (typeof window !== 'undefined') {
         const stateToStore = {
           gameCode,
@@ -217,12 +196,11 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
 
       let text = ""
       let embedUrl = ""
-      
-      // Get share URL from backend API
+
       try {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"
         const userId = auth.user ? `farcaster_${auth.user.fid}` : undefined
-        
+
         const response = await fetch(`${baseUrl}/api/game/share`, {
           method: 'POST',
           headers: {
@@ -233,14 +211,13 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
             userId: userId
           })
         })
-        
+
         if (response.ok) {
           const shareData = await response.json()
           embedUrl = shareData.shareUrl
-          
-          // Try to get game metadata for better sharing
+
           const gameMetadata = shareData
-          
+
           switch (template) {
             case "created":
               const gameMode = gameMetadata.gameMode === "fill-blank" ? "Fill-in-Blank" : "Frame-the-Word"
@@ -250,7 +227,6 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
               text = `🎉 I just won a word game on Writecast!\n\nGame: ${gameCode}\nPlay it yourself and see if you can beat my score! 🏆`
               break
             case "invite":
-              // Use custom text/embeds from options if provided
               text = options?.text || `🎮 Join me in this word game!\n\nGame: ${gameCode}\nLet's see who can solve it first!`
               break
           }
@@ -259,10 +235,9 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.warn("Could not fetch share URL from backend:", error)
-        // Fallback to direct Mini App URL
         const miniAppUrl = "https://farcaster.xyz/miniapps/lgcZHUGhSVly/writecast"
         embedUrl = `${miniAppUrl}?code=${gameCode}`
-        
+
         switch (template) {
           case "created":
             text = `🎮 I just created a word game on Writecast!\n\nGame Code: ${gameCode}\nCan you guess my hidden word?\n\nClick "Play Now" to start! 🤔`
@@ -277,14 +252,12 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
       }
 
       console.log("composeCast called with:", { text, embedUrl, options })
-      
-      // Compose cast with text and proper embed URL
+
       await farcasterSDK.actions.composeCast(text, {
         embeds: options?.embeds || [embedUrl],
         ...options
       })
-      
-      // Clear stored state after successful compose
+
       if (typeof window !== 'undefined') {
         sessionStorage.removeItem('farcaster_composer_state')
       }
@@ -301,8 +274,7 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
       }
 
       const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"
-      
-      // Use the correct SDK method to open mini app
+
       await farcasterSDK.actions.openMiniApp(appUrl)
     } catch (error) {
       console.error("Failed to invite user:", error)
@@ -325,20 +297,20 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
 
   const signalReady = async () => {
     try {
-      if (!isFarcasterAvailable()) {
-        console.log("Farcaster SDK not available - skipping ready signal")
+      const available = await waitForFarcasterSDKReady({ timeoutMs: 12000, pollMs: 150, allowTimeoutResolve: false })
+      if (!available) {
+        console.warn("signalReady: SDK not available after waiting; skipping ready signal")
         return
       }
 
       console.log("Signaling SDK ready...")
       console.log("SDK object:", sdk)
-      console.log("SDK actions:", sdk.actions)
-      
-      await sdk.actions.ready()
+      console.log("SDK actions:", (sdk as any).actions)
+
+      await (sdk as any).actions.ready()
       console.log("SDK ready signal completed successfully")
     } catch (error) {
       console.error("Failed to signal SDK ready:", error)
-      console.error("Error details:", error)
     }
   }
 

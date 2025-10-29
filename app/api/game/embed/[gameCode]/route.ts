@@ -41,7 +41,7 @@ export async function GET(
     // Generate OG image URL - use the new icon
     const ogImageUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"}/icon-512.png`
 
-    // Create minimal HTML with just meta tags and immediate redirect script
+    // Create minimal HTML with frame meta tags only; no auto-redirect
     const html = `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -53,8 +53,8 @@ export async function GET(
     <meta property="fc:frame" content="vNext" />
     <meta property="fc:frame:image" content="${ogImageUrl}" />
     <meta property="fc:frame:button:1" content="Play Now" />
-    <meta property="fc:frame:button:1:action" content="link" />
-    <meta property="fc:frame:button:1:target" content="${fullMiniAppUrl}" />
+    <meta property="fc:frame:button:1:action" content="launch_miniapp" />
+    <meta property="fc:frame:button:1:target" content="https://writecast-1.vercel.app/?${queryParams}" />
     
     <!-- Standard Open Graph Meta Tags -->
     <meta property="og:title" content="Writecast Game - ${gameCode.toUpperCase()}" />
@@ -69,16 +69,9 @@ export async function GET(
     <meta name="twitter:description" content="Can you guess the hidden word? Play this ${game.game_type === 'fill-blank' ? 'Fill-in-Blank' : 'Frame-the-Word'} word game!" />
     <meta name="twitter:image" content="${ogImageUrl}" />
     
-    <!-- Immediate redirect to Mini App -->
-    <script>
-        window.location.replace("${fullMiniAppUrl}");
-    </script>
-    
-    <!-- Fallback redirect if JS is disabled -->
-    <meta http-equiv="refresh" content="0; url=${fullMiniAppUrl}">
 </head>
 <body>
-    <p>Redirecting to game... <a href="${fullMiniAppUrl}">Click here if not redirected</a></p>
+    <p>Play in Farcaster: use the "Play Now" button.</p>
 </body>
 </html>`
 
