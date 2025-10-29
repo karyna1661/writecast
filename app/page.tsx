@@ -62,7 +62,7 @@ export default function Home() {
 
 ${farcaster.auth.isAuthenticated 
   ? `Signed in as @${farcaster.auth.user?.username}` 
-  : 'Playing as guest - Sign in to create games and share!'}
+  : (farcaster.isAvailable ? 'Connecting to Farcaster…' : 'Playing as guest - Sign in to create games and share!')}
 
 Two game modes available:
   1. FILL-IN-BLANK: Hide a word in your text, players guess it

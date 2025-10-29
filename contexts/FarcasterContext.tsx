@@ -50,8 +50,46 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
         setIsAvailable(available)
 
         if (!available) {
-          console.log("FarcasterContext: SDK not available - no guest yet; showing connecting state")
-          setAuth(prev => ({ ...prev, isLoading: false }))
+          console.log("FarcasterContext: SDK not available initially - waiting for context before fallback")
+          // Keep loading and poll for context up to 10s so we don't flash guest
+          setAuth(prev => ({ ...prev, isLoading: true }))
+
+          let resolved = false
+          await new Promise<void>((resolve) => {
+            const intervalId = setInterval(async () => {
+              try {
+                if ((sdk as any)?.context) {
+                  const context = await Promise.race([
+                    (sdk as any).context,
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Context fetch timeout')), 3000))
+                  ])
+                  if (context?.user) {
+                    resolved = true
+                    const user: FarcasterUser = {
+                      fid: context.user.fid,
+                      username: context.user.username || `user-${context.user.fid}`,
+                      displayName: context.user.displayName || context.user.username || `user-${context.user.fid}`,
+                    }
+                    setAuth({ isAuthenticated: true, user, token: null, isLoading: false })
+                    clearInterval(intervalId)
+                    clearTimeout(timeoutId)
+                    resolve()
+                  }
+                }
+              } catch {}
+            }, 200)
+            const timeoutId = setTimeout(() => {
+              if (!resolved) {
+                clearInterval(intervalId)
+                resolve()
+              }
+            }, 10000)
+          })
+
+          if (!resolved) {
+            // End loading without forcing guest; UI should avoid guest copy when in Farcaster
+            setAuth(prev => ({ ...prev, isLoading: false }))
+          }
           return
         }
 
@@ -103,22 +141,12 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
     const safetyTimeout = setTimeout(() => {
       setAuth(prev => {
         if (prev.isLoading) {
-          console.warn("FarcasterContext: Safety timeout - forcing demo mode")
-          const demoUser: FarcasterUser = {
-            fid: 99999,
-            username: "timeout_user",
-            displayName: "Timeout User",
-          }
-          return {
-            isAuthenticated: true,
-            user: demoUser,
-            token: null,
-            isLoading: false,
-          }
+          console.warn("FarcasterContext: Safety timeout - ending loading without guest")
+          return { ...prev, isLoading: false }
         }
         return prev
       })
-    }, 3000)
+    }, 10000)
 
     return () => clearTimeout(safetyTimeout)
   }, [])
