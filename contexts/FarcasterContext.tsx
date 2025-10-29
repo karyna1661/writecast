@@ -27,6 +27,26 @@ interface FarcasterContextType {
 
 const FarcasterContext = createContext<FarcasterContextType | null>(null)
 
+// Heuristic detection to infer Farcaster environment early (pre-bridge)
+function detectMiniAppEnv(): boolean {
+  try {
+    if (typeof window === "undefined") return false
+    const ua = navigator.userAgent.toLowerCase()
+    const inIframe = window.self !== window.top
+    const hasBridge = typeof (window as any).MiniApp !== "undefined" || typeof (window as any).farcaster !== "undefined"
+    const referrer = (document?.referrer || "").toLowerCase()
+    // If bridge is present OR UA/referrer points to Warpcast/Farcaster OR running in an iframe with Farcaster referrer
+    return (
+      hasBridge ||
+      ua.includes("warpcast") ||
+      ua.includes("farcaster") ||
+      (inIframe && (referrer.includes("warpcast") || referrer.includes("farcaster")))
+    )
+  } catch {
+    return false
+  }
+}
+
 export function FarcasterProvider({ children }: { children: React.ReactNode }) {
   const [auth, setAuth] = useState<AuthState>({
     isAuthenticated: false,
@@ -42,12 +62,20 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
     console.log("FarcasterContext: User agent:", navigator.userAgent)
     console.log("FarcasterContext: SDK object:", typeof sdk !== "undefined" ? "exists" : "undefined")
 
+    // Set availability early based on heuristics to avoid guest UI in Farcaster
+    const presumedEnv = detectMiniAppEnv()
+    if (presumedEnv) {
+      console.log("FarcasterContext: Heuristically detected Farcaster environment")
+      setIsAvailable(true)
+    }
+
     const initSDK = async () => {
       try {
         // wait for bridge with timeout but do not block UI forever
         const available = await waitForFarcasterSDKReady({ timeoutMs: 12000, pollMs: 150, allowTimeoutResolve: true })
         console.log("FarcasterContext: SDK available?", available)
-        setIsAvailable(available)
+        // Keep availability true if we already presumed Farcaster
+        setIsAvailable(available || presumedEnv)
 
         if (!available) {
           console.log("FarcasterContext: SDK not available initially - waiting for context before fallback")
@@ -249,7 +277,12 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
           switch (template) {
             case "created":
               const gameMode = gameMetadata.gameMode === "fill-blank" ? "Fill-in-Blank" : "Frame-the-Word"
-              text = `🎮 I just created a ${gameMode} word game on Writecast!\n\nGame Code: ${gameCode}\nCan you guess my hidden word?\n\nClick "Play Now" to start! 🤔`
+              text = `🎮 I just created a ${gameMode} word game on Writecast!
+
+Game Code: ${gameCode}
+Can you guess my hidden word?
+
+Click "Play Now" to start! 🤔`
               break
             case "won":
               text = `🎉 I just won a word game on Writecast!\n\nGame: ${gameCode}\nPlay it yourself and see if you can beat my score! 🏆`
@@ -268,7 +301,12 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
 
         switch (template) {
           case "created":
-            text = `🎮 I just created a word game on Writecast!\n\nGame Code: ${gameCode}\nCan you guess my hidden word?\n\nClick "Play Now" to start! 🤔`
+            text = `🎮 I just created a word game on Writecast!
+
+Game Code: ${gameCode}
+Can you guess my hidden word?
+
+Click "Play Now" to start! 🤔`
             break
           case "won":
             text = `🎉 I just won a word game on Writecast!\n\nGame: ${gameCode}\nPlay it yourself and see if you can beat my score! 🏆`
