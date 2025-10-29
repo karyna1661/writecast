@@ -35,12 +35,11 @@ function detectMiniAppEnv(): boolean {
     const inIframe = window.self !== window.top
     const hasBridge = typeof (window as any).MiniApp !== "undefined" || typeof (window as any).farcaster !== "undefined"
     const referrer = (document?.referrer || "").toLowerCase()
-    // If bridge is present OR UA/referrer points to Warpcast/Farcaster OR running in an iframe with Farcaster referrer
+    // If bridge is present OR UA/referrer points to Farcaster OR running in an iframe with Farcaster referrer
     return (
       hasBridge ||
-      ua.includes("warpcast") ||
       ua.includes("farcaster") ||
-      (inIframe && (referrer.includes("warpcast") || referrer.includes("farcaster")))
+      (inIframe && referrer.includes("farcaster"))
     )
   } catch {
     return false
