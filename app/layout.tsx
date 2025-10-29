@@ -3,6 +3,7 @@ import "./globals.css"
 import { FarcasterProvider } from "@/contexts/FarcasterContext"
 import { Analytics } from "@vercel/analytics/react"
 import { ReadySignal } from "@/components/ready-signal"
+import Script from "next/script"
 
 export const metadata = {
   title: "Writecast - CLI Word Game",
@@ -73,6 +74,46 @@ export default function RootLayout({
   return (
     <html lang="en" className="font-mono antialiased" suppressHydrationWarning>
       <body suppressHydrationWarning>
+        <Script id="fc-ready-inline" strategy="afterInteractive">
+          {`(function(){
+  try {
+    var called = false;
+    var maxWaitMs = 10000;
+    var intervalMs = 100;
+
+    function tryReady(){
+      try {
+        var w = window;
+        var s = w.sdk;
+        if (!called && s && s.actions && typeof s.actions.ready === 'function'){
+          called = true;
+          console.log('InlineReady: calling sdk.actions.ready()');
+          Promise.resolve(s.actions.ready()).catch(function(e){
+            console.warn('InlineReady: ready() failed', e);
+          });
+          clearInterval(intervalId);
+          clearTimeout(timeoutId);
+        }
+      } catch (e) {
+        console.warn('InlineReady: error in tryReady', e);
+      }
+    }
+
+    // immediate attempt and polling
+    tryReady();
+    var intervalId = setInterval(tryReady, intervalMs);
+    var timeoutId = setTimeout(function(){
+      if (!called) {
+        console.warn('InlineReady: timeout waiting for sdk');
+        clearInterval(intervalId);
+      }
+    }, maxWaitMs);
+
+  } catch (e) {
+    console.warn('InlineReady: setup failed', e);
+  }
+})();`}
+        </Script>
         <ReadySignal />
         <FarcasterProvider>
           {children}
