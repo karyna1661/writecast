@@ -78,7 +78,7 @@ export default function RootLayout({
           {`(function(){
   try {
     var called = false;
-    var maxWaitMs = 10000;
+    var maxWaitMs = 5000;
     var intervalMs = 100;
 
     function tryReady(){

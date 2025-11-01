@@ -9,11 +9,18 @@ export function ReadySignal() {
     let aborted = false
 
     const run = async () => {
-      const ready = await waitForFarcasterSDKReady({ timeoutMs: 15000, pollMs: 100, allowTimeoutResolve: false })
+      // Short wait for SDK - FarcasterContext handles the heavy lifting
+      const ready = await waitForFarcasterSDKReady({ 
+        timeoutMs: 5000, 
+        pollMs: 100, 
+        allowTimeoutResolve: false 
+      })
+      
       if (!ready || aborted) {
-        console.warn("ReadySignal: SDK not ready after waiting; not calling ready()")
+        console.log("ReadySignal: SDK not available, skipping ready() call")
         return
       }
+      
       try {
         console.log("ReadySignal: calling sdk.actions.ready()")
         await (sdk as any).actions.ready()
