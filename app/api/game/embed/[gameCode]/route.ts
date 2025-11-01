@@ -22,9 +22,9 @@ export async function GET(
       return new NextResponse("Game not found", { status: 404 })
     }
 
-    // Build target URL using direct app URL (not Farcaster mini app format)
-    // This ensures query parameters are preserved when launch_miniapp opens the mini app
-    const appBaseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"
+    // Build target URL using Farcaster mini app format
+    // This format is designed to work with launch_miniapp and preserves query parameters
+    const miniAppBaseUrl = "https://farcaster.xyz/miniapps/lgcZHUGhSVly/writecast"
     let queryParams = `gameid=${gameCode.toUpperCase()}`
     
     if (sharer) {
@@ -37,8 +37,8 @@ export async function GET(
       queryParams += `&invitee=${invitee}`
     }
 
-    // Use direct app URL so query parameters are preserved when launch_miniapp opens the mini app
-    const fullMiniAppUrl = `${appBaseUrl}/?${queryParams}`
+    // Use Farcaster mini app URL format - this preserves query parameters when launch_miniapp opens the mini app
+    const fullMiniAppUrl = `${miniAppBaseUrl}?${queryParams}`
 
     // Generate OG image URL - use the new icon
     const ogImageUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"}/icon-512.png`
