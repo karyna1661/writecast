@@ -158,14 +158,14 @@ export function isFarcasterAvailable(lenient?: boolean): boolean {
     const sdkReadyFn = typeof (sdk as any)?.actions?.ready === "function"
     const hasSDKImport = typeof sdk !== "undefined"
     
-    // In iframe with lenient mode: if SDK import exists and ready function exists, consider it available
-    // (bridge might not be detected yet but SDK still works)
+    // In iframe with lenient mode: if SDK import exists with actions, consider it available
+    // (bridge might not be detected yet but SDK still works - don't require ready to be a function)
     if (lenient || inIframe) {
-      // If we have SDK import and ready function, we can try calling ready()
-      if (hasSDKImport && sdkReadyFn) {
+      // If we have SDK import and actions object exists, we can try calling ready()
+      if (hasSDKImport && (sdk as any)?.actions) {
         return true
       }
-      // If we're in iframe and have bridge, even without ready function yet, consider it "maybe available"
+      // If we're in iframe and have bridge, even without SDK actions yet, consider it "maybe available"
       if (inIframe && hasBridge) {
         return true
       }
@@ -200,9 +200,10 @@ export async function waitForFarcasterSDKReady(opts?: { timeoutMs?: number; poll
     return true
   }
 
-  // In iframe, if SDK import exists but bridge isn't detected, still try to use it
-  if (inIframe && typeof sdk !== "undefined" && typeof (sdk as any)?.actions?.ready === "function") {
-    console.log("waitForFarcasterSDKReady: In iframe with SDK import, allowing use even without bridge detection")
+  // In iframe, if SDK import exists with actions, allow use even without bridge detection or type checks
+  // Don't check if ready() is a function - just check if SDK and actions exist
+  if (inIframe && typeof sdk !== "undefined" && (sdk as any)?.actions) {
+    console.log("waitForFarcasterSDKReady: In iframe with SDK import + actions, allowing use (no type check)")
     return true
   }
 
@@ -220,17 +221,15 @@ export async function waitForFarcasterSDKReady(opts?: { timeoutMs?: number; poll
         return
       }
 
-      // In iframe with lenient mode, also check if SDK import + ready function exists
+      // In iframe with lenient mode, check if SDK import + actions exists (don't require ready to be a function)
       // (bridge might never be detected but SDK still works)
-      if (useLenient && typeof sdk !== "undefined") {
+      if (useLenient && typeof sdk !== "undefined" && (sdk as any)?.actions) {
         try {
-          if (typeof (sdk as any)?.actions?.ready === "function") {
-            clearInterval(intervalId)
-            clearTimeout(timeoutId)
-            console.log("Farcaster SDK ready function detected (iframe, lenient mode) after", Date.now() - start, "ms")
-            resolve(true)
-            return
-          }
+          clearInterval(intervalId)
+          clearTimeout(timeoutId)
+          console.log("Farcaster SDK actions detected (iframe, lenient mode) after", Date.now() - start, "ms - no type check")
+          resolve(true)
+          return
         } catch (e) {
           // Continue polling
         }
@@ -243,14 +242,14 @@ export async function waitForFarcasterSDKReady(opts?: { timeoutMs?: number; poll
       console.warn("waitForFarcasterSDKReady: timeout after", timeoutMs, "ms", { 
         inIframe, 
         hasSDK: typeof sdk !== "undefined",
-        hasReady: typeof (sdk as any)?.actions?.ready === "function",
+        hasActions: typeof (sdk as any)?.actions !== "undefined",
         hasBridge: typeof (window as any).MiniApp !== "undefined" || typeof (window as any).farcaster !== "undefined"
       })
       
-      // In iframe with lenient mode, if we have SDK import, still return true
-      // (we can try calling ready() even if bridge detection failed)
-      if (useLenient && typeof sdk !== "undefined" && typeof (sdk as any)?.actions?.ready === "function") {
-        console.log("waitForFarcasterSDKReady: Timeout but SDK ready function exists in iframe, returning true (lenient)")
+      // In iframe with lenient mode, if we have SDK import + actions, still return true
+      // (we can try calling ready() even if bridge detection failed or type check fails)
+      if (useLenient && typeof sdk !== "undefined" && (sdk as any)?.actions) {
+        console.log("waitForFarcasterSDKReady: Timeout but SDK actions exist in iframe, returning true (lenient, no type check)")
         resolve(true)
       } else {
         resolve(allowTimeoutResolve ? false : false)

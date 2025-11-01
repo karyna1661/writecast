@@ -12,67 +12,72 @@ export function ReadySignal() {
     const isInIframe = typeof window !== "undefined" && window.self !== window.top
 
     // Try multiple methods to call ready()
+    // CRITICAL: Don't wait for type checks - try calling ready() directly and catch errors
     const tryCallReady = async (): Promise<boolean> => {
       if (called || aborted) return false
 
       try {
-        // Method 1: Direct import from @farcaster/miniapp-sdk
-        if (sdk && (sdk as any).actions && typeof (sdk as any).actions.ready === "function") {
-          console.log("ReadySignal: Calling ready() via direct SDK import")
-          called = true
-          await (sdk as any).actions.ready()
-          console.log("ReadySignal: ready() completed via direct import")
-          return true
+        // Method 1: If SDK import exists, try calling ready() DIRECTLY (don't check type first)
+        if (sdk && (sdk as any).actions) {
+          try {
+            console.log("ReadySignal: Attempting ready() via direct SDK import (no type check)")
+            called = true
+            await (sdk as any).actions.ready()
+            console.log("ReadySignal: ready() completed via direct import")
+            return true
+          } catch (e) {
+            console.warn("ReadySignal: ready() call failed, will retry", e)
+            called = false // Allow retry
+          }
         }
 
         // Method 2: window.sdk (if exposed)
         if (typeof window !== "undefined" && (window as any).sdk) {
           const windowSdk = (window as any).sdk
-          if (windowSdk.actions && typeof windowSdk.actions.ready === "function") {
-            console.log("ReadySignal: Calling ready() via window.sdk")
-            called = true
-            await windowSdk.actions.ready()
-            console.log("ReadySignal: ready() completed via window.sdk")
-            return true
-          }
-        }
-
-        // Method 3: If in iframe, try accessing via bridge even if actions.ready isn't ready yet
-        if (isInIframe) {
-          const hasBridge = typeof (window as any).MiniApp !== "undefined" || typeof (window as any).farcaster !== "undefined"
-          if (hasBridge && sdk) {
-            // In iframe, try calling ready() anyway - the bridge might work even if detection failed
-            console.log("ReadySignal: In iframe with bridge detected, attempting ready() via direct import")
+          if (windowSdk.actions) {
             try {
+              console.log("ReadySignal: Attempting ready() via window.sdk (no type check)")
               called = true
-              await (sdk as any).actions.ready()
-              console.log("ReadySignal: ready() completed in iframe context")
+              await windowSdk.actions.ready()
+              console.log("ReadySignal: ready() completed via window.sdk")
               return true
             } catch (e) {
-              console.warn("ReadySignal: ready() failed in iframe, will retry", e)
+              console.warn("ReadySignal: window.sdk ready() failed, will retry", e)
               called = false // Allow retry
             }
           }
         }
       } catch (e) {
-        console.warn("ReadySignal: tryCallReady error", e)
+        console.warn("ReadySignal: tryCallReady outer error", e)
+        called = false // Allow retry
       }
 
       return false
     }
 
     const run = async () => {
-      // If in iframe, be more aggressive - try immediately and frequently
+      // If in iframe, be more aggressive - try calling ready() immediately
       if (isInIframe) {
-        console.log("ReadySignal: Detected iframe environment (Farcaster web)")
+        console.log("ReadySignal: Detected iframe environment (Farcaster web/mobile)")
+        console.log("ReadySignal: SDK import exists?", typeof sdk !== "undefined")
+        console.log("ReadySignal: SDK actions exists?", typeof (sdk as any)?.actions !== "undefined")
         
-        // Immediate attempt
-        if (await tryCallReady()) {
-          return
+        // In iframe, if SDK import exists, try calling ready() IMMEDIATELY without waiting
+        if (typeof sdk !== "undefined" && (sdk as any).actions) {
+          try {
+            console.log("ReadySignal: Calling ready() immediately in iframe (no checks)")
+            called = true
+            await (sdk as any).actions.ready()
+            console.log("ReadySignal: ready() completed immediately!")
+            return
+          } catch (e) {
+            console.warn("ReadySignal: Immediate ready() call failed, will retry", e)
+            called = false // Allow retry
+          }
         }
 
         // Try multiple times with shorter intervals in iframe
-        const maxAttempts = 50 // 5 seconds at 100ms intervals
+        const maxAttempts = 100 // 10 seconds at 100ms intervals
         let attempts = 0
 
         const intervalId = setInterval(async () => {

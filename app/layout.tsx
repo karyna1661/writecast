@@ -93,54 +93,72 @@ export default function RootLayout({
       attempts++;
 
       try {
-        // Method 1: window.sdk (most common)
         var w = window;
-        var s = w.sdk;
-        if (s && s.actions && typeof s.actions.ready === 'function'){
-          called = true;
-          console.log('InlineReady: Found window.sdk, calling ready()');
-          Promise.resolve(s.actions.ready()).then(function(){
-            console.log('InlineReady: ready() completed via window.sdk');
-          }).catch(function(e){
-            console.warn('InlineReady: ready() failed via window.sdk', e);
-            called = false; // Allow retry
-          });
-          return;
-        }
-
-        // Method 2: Check for bridge in iframe context
+        
+        // CRITICAL: In iframe, try calling ready() DIRECTLY without type checks
         if (isInIframe) {
-          var hasBridge = typeof w.MiniApp !== 'undefined' || typeof w.farcaster !== 'undefined';
-          if (hasBridge) {
-            // Try to find SDK in various locations
-            // Sometimes SDK might be on a different object
-            var possibleSDKs = [
-              w.sdk,
-              w.farcaster && w.farcaster.sdk,
-              w.MiniApp && w.MiniApp.sdk,
-              w.__FARCASTER_SDK__,
-              w.FarcasterSDK
-            ];
+          // Method 1: Try window.sdk directly (don't check type first)
+          if (w.sdk && w.sdk.actions) {
+            try {
+              called = true;
+              console.log('InlineReady: Calling ready() via window.sdk (no type check, iframe)');
+              Promise.resolve(w.sdk.actions.ready()).then(function(){
+                console.log('InlineReady: ready() completed via window.sdk');
+              }).catch(function(e){
+                console.warn('InlineReady: ready() failed, will retry', e);
+                called = false; // Allow retry
+              });
+              return;
+            } catch (e) {
+              console.warn('InlineReady: error calling ready()', e);
+              called = false;
+            }
+          }
 
-            for (var i = 0; i < possibleSDKs.length; i++) {
-              var sdk = possibleSDKs[i];
-              if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
+          // Method 2: Try all possible SDK locations without type checks
+          var possibleSDKs = [
+            w.sdk,
+            w.farcaster && w.farcaster.sdk,
+            w.MiniApp && w.MiniApp.sdk,
+            w.__FARCASTER_SDK__,
+            w.FarcasterSDK
+          ];
+
+          for (var i = 0; i < possibleSDKs.length; i++) {
+            var sdk = possibleSDKs[i];
+            if (sdk && sdk.actions) {
+              try {
                 called = true;
-                console.log('InlineReady: Found SDK via bridge detection, calling ready()');
+                console.log('InlineReady: Calling ready() via SDK location ' + i + ' (no type check)');
                 Promise.resolve(sdk.actions.ready()).then(function(){
-                  console.log('InlineReady: ready() completed via bridge');
+                  console.log('InlineReady: ready() completed');
                 }).catch(function(e){
-                  console.warn('InlineReady: ready() failed via bridge', e);
+                  console.warn('InlineReady: ready() failed via location ' + i, e);
                   called = false;
                 });
                 return;
+              } catch (e) {
+                console.warn('InlineReady: error calling ready() via location ' + i, e);
+                called = false;
               }
             }
-
-            // In iframe with bridge, even if we can't find SDK yet,
-            // log that we detected the environment
-            if (attempts === 1) {
-              console.log('InlineReady: Iframe detected with bridge, SDK may load soon');
+          }
+        } else {
+          // Standalone mode: still try without type checks, but be more conservative
+          if (w.sdk && w.sdk.actions) {
+            try {
+              called = true;
+              console.log('InlineReady: Calling ready() via window.sdk (standalone)');
+              Promise.resolve(w.sdk.actions.ready()).then(function(){
+                console.log('InlineReady: ready() completed via window.sdk');
+              }).catch(function(e){
+                console.warn('InlineReady: ready() failed', e);
+                called = false;
+              });
+              return;
+            } catch (e) {
+              console.warn('InlineReady: error calling ready()', e);
+              called = false;
             }
           }
         }
@@ -149,7 +167,24 @@ export default function RootLayout({
       }
     }
 
-    // Immediate attempt
+    // In iframe, try calling ready() IMMEDIATELY if SDK is available
+    if (isInIframe && window.sdk && window.sdk.actions) {
+      try {
+        called = true;
+        console.log('InlineReady: Immediate ready() call in iframe');
+        Promise.resolve(window.sdk.actions.ready()).then(function(){
+          console.log('InlineReady: ready() completed immediately!');
+        }).catch(function(e){
+          console.warn('InlineReady: Immediate ready() failed, will retry', e);
+          called = false;
+        });
+      } catch (e) {
+        console.warn('InlineReady: Immediate ready() call error', e);
+        called = false;
+      }
+    }
+
+    // Also try the normal path
     tryReady();
 
     var intervalId = setInterval(function(){
