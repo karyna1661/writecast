@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { TerminalWindow } from "@/components/terminal-window"
 import { TerminalHeader } from "@/components/terminal-header"
 import { CliTerminal, type CliMessage } from "@/components/cli-terminal"
@@ -81,20 +81,70 @@ Type 'help' to see all commands, or try:
     }
   }, [farcaster.auth.isLoading])
 
-  // Deep-link support: Auto-play game if code parameter exists
-  useEffect(() => {
-    if (!farcaster.auth.isLoading && typeof window !== 'undefined') {
-      const params = new URLSearchParams(window.location.search)
-      const code = params.get('code')
-      
-      if (code) {
-        // Auto-execute play command
-        setTimeout(() => {
-          handleCommand(`play ${code}`, gameState, setGameState, addMessage, farcaster)
-        }, 1000) // Small delay to ensure UI is ready
-      }
+  // Track if auto-play has been executed to prevent double execution
+  const autoPlayExecuted = useRef(false)
+  const lastProcessedCode = useRef<string | null>(null)
+  
+  // Helper function to check and execute auto-play
+  const checkAndAutoPlay = () => {
+    // Don't proceed if already executed, auth is loading, or window is undefined
+    if (autoPlayExecuted.current || farcaster.auth.isLoading || typeof window === 'undefined') {
+      return
     }
+
+    const params = new URLSearchParams(window.location.search)
+    const code = params.get('code')
+    
+    // Only proceed if we have a code and haven't processed it yet
+    if (!code || code === lastProcessedCode.current) {
+      return
+    }
+    
+    console.log("Auto-play: Detected code parameter:", code)
+    
+    // Mark as executed and track the code to prevent double execution
+    autoPlayExecuted.current = true
+    lastProcessedCode.current = code
+    
+    // Get invite parameters for logging and potential bonus processing
+    const invitedBy = params.get('invitedBy')
+    const invitee = params.get('invitee')
+    const sharer = params.get('sharer')
+    
+    if (invitedBy && invitee) {
+      console.log("Auto-play: Invite detected - invitedBy:", invitedBy, "invitee:", invitee)
+    }
+    if (sharer) {
+      console.log("Auto-play: Share detected - sharer:", sharer)
+    }
+    
+    // Auto-execute play command after a delay to ensure UI is ready
+    setTimeout(async () => {
+      console.log("Auto-play: Executing play command for:", code)
+      await handleCommand(`play ${code}`, gameState, setGameState, addMessage, farcaster)
+      
+      // Note: Invite bonus is handled by game session sync when the game loads
+      if (invitedBy && invitee && farcaster.auth.user) {
+        console.log("Auto-play: Invite context will be processed by game session sync")
+      }
+    }, 1500) // Delay to ensure UI is ready
+  }
+  
+  // Deep-link support: Auto-play game if code parameter exists
+  // This runs when auth loading finishes
+  useEffect(() => {
+    checkAndAutoPlay()
   }, [farcaster.auth.isLoading])
+  
+  // Also check immediately on mount if auth is already loaded
+  useEffect(() => {
+    // Small delay to ensure component is fully mounted
+    const timer = setTimeout(() => {
+      checkAndAutoPlay()
+    }, 100)
+    
+    return () => clearTimeout(timer)
+  }, []) // Only run on mount
 
   const addMessage = (msg: CliMessage) => {
     setMessages((prev) => [...prev, msg])
@@ -160,3 +210,4 @@ Type 'help' to see all commands, or try:
     </TerminalWindow>
   )
 }
+
