@@ -54,7 +54,7 @@ export async function GET(
     <meta property="fc:frame:image" content="${ogImageUrl}" />
     <meta property="fc:frame:button:1" content="Play Now" />
     <meta property="fc:frame:button:1:action" content="launch_miniapp" />
-    <meta property="fc:frame:button:1:target" content="https://writecast-1.vercel.app/?${queryParams}" />
+    <meta property="fc:frame:button:1:target" content="${fullMiniAppUrl}" />
     
     <!-- Standard Open Graph Meta Tags -->
     <meta property="og:title" content="Writecast Game - ${gameCode.toUpperCase()}" />
