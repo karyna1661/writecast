@@ -78,7 +78,9 @@ export async function GET(
     return new NextResponse(html, {
       headers: {
         'Content-Type': 'text/html',
-        'Cache-Control': 'public, max-age=86400, stale-while-revalidate=3600',
+        // Shorter cache time for frame metadata to ensure fresh scrapes
+        // Farcaster may cache the frame HTML, so we want fresh metadata
+        'Cache-Control': 'public, max-age=300, stale-while-revalidate=60',
       },
     })
   } catch (error) {

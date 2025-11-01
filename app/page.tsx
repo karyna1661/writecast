@@ -89,27 +89,54 @@ Type 'help' to see all commands, or try:
   const checkAndAutoPlay = () => {
     // Don't proceed if already executed, auth is loading, or window is undefined
     if (autoPlayExecuted.current || farcaster.auth.isLoading || typeof window === 'undefined') {
+      console.log("Auto-play: Skipping - executed:", autoPlayExecuted.current, "authLoading:", farcaster.auth.isLoading)
       return
     }
 
-    const params = new URLSearchParams(window.location.search)
+    // Log current URL for debugging
+    const currentUrl = window.location.href
+    const searchParams = window.location.search
+    console.log("Auto-play: Checking URL - href:", currentUrl, "search:", searchParams)
+
+    const params = new URLSearchParams(searchParams)
     const code = params.get('code')
     
+    // Also try parsing from hash if Farcaster uses hash-based routing
+    let hashCode = null
+    if (window.location.hash) {
+      try {
+        const hashParams = new URLSearchParams(window.location.hash.replace('#', ''))
+        hashCode = hashParams.get('code')
+        if (hashCode) {
+          console.log("Auto-play: Found code in hash:", hashCode)
+        }
+      } catch (e) {
+        // Hash might not be query params format
+      }
+    }
+    
+    const finalCode = code || hashCode
+    
     // Only proceed if we have a code and haven't processed it yet
-    if (!code || code === lastProcessedCode.current) {
+    if (!finalCode || finalCode === lastProcessedCode.current) {
+      if (!finalCode) {
+        console.log("Auto-play: No code parameter found in URL")
+      } else {
+        console.log("Auto-play: Code already processed:", finalCode)
+      }
       return
     }
     
-    console.log("Auto-play: Detected code parameter:", code)
+    console.log("Auto-play: Detected code parameter:", finalCode)
     
     // Mark as executed and track the code to prevent double execution
     autoPlayExecuted.current = true
-    lastProcessedCode.current = code
+    lastProcessedCode.current = finalCode
     
     // Get invite parameters for logging and potential bonus processing
-    const invitedBy = params.get('invitedBy')
-    const invitee = params.get('invitee')
-    const sharer = params.get('sharer')
+    const invitedBy = params.get('invitedBy') || (window.location.hash ? new URLSearchParams(window.location.hash.replace('#', '')).get('invitedBy') : null)
+    const invitee = params.get('invitee') || (window.location.hash ? new URLSearchParams(window.location.hash.replace('#', '')).get('invitee') : null)
+    const sharer = params.get('sharer') || (window.location.hash ? new URLSearchParams(window.location.hash.replace('#', '')).get('sharer') : null)
     
     if (invitedBy && invitee) {
       console.log("Auto-play: Invite detected - invitedBy:", invitedBy, "invitee:", invitee)
@@ -120,8 +147,8 @@ Type 'help' to see all commands, or try:
     
     // Auto-execute play command after a delay to ensure UI is ready
     setTimeout(async () => {
-      console.log("Auto-play: Executing play command for:", code)
-      await handleCommand(`play ${code}`, gameState, setGameState, addMessage, farcaster)
+      console.log("Auto-play: Executing play command for:", finalCode)
+      await handleCommand(`play ${finalCode}`, gameState, setGameState, addMessage, farcaster)
       
       // Note: Invite bonus is handled by game session sync when the game loads
       if (invitedBy && invitee && farcaster.auth.user) {
@@ -145,6 +172,44 @@ Type 'help' to see all commands, or try:
     
     return () => clearTimeout(timer)
   }, []) // Only run on mount
+
+  // Listen for URL changes (in case Farcaster updates URL after launch)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    const handleLocationChange = () => {
+      console.log("Auto-play: URL changed, re-checking for code parameter")
+      // Reset execution flag if URL changed (might be different game)
+      const newParams = new URLSearchParams(window.location.search)
+      const newCode = newParams.get('code')
+      if (newCode && newCode !== lastProcessedCode.current) {
+        autoPlayExecuted.current = false
+      }
+      checkAndAutoPlay()
+    }
+
+    // Listen for popstate (back/forward navigation)
+    window.addEventListener('popstate', handleLocationChange)
+    
+    // Also periodically check for URL changes (some frameworks update URL without events)
+    const intervalId = setInterval(() => {
+      const currentUrl = window.location.href + window.location.search
+      if (currentUrl !== (window as any).__lastCheckedUrl) {
+        (window as any).__lastCheckedUrl = currentUrl
+        handleLocationChange()
+      }
+    }, 500) // Check every 500ms for first 5 seconds after mount
+    
+    // Clear interval after 5 seconds (should be enough time for Farcaster to set URL)
+    setTimeout(() => {
+      clearInterval(intervalId)
+    }, 5000)
+
+    return () => {
+      window.removeEventListener('popstate', handleLocationChange)
+      clearInterval(intervalId)
+    }
+  }, [farcaster.auth.isLoading])
 
   const addMessage = (msg: CliMessage) => {
     setMessages((prev) => [...prev, msg])
