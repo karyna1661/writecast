@@ -282,7 +282,7 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
       } catch (error) {
         console.warn("Could not fetch share URL from backend:", error)
         const miniAppUrl = "https://farcaster.xyz/miniapps/lgcZHUGhSVly/writecast"
-        embedUrl = `${miniAppUrl}?code=${gameCode}`
+        embedUrl = `${miniAppUrl}?gameid=${gameCode}`
 
         switch (template) {
           case "created":

@@ -24,7 +24,7 @@ export async function GET(
 
     // Determine the Mini App URL based on context
     let miniAppUrl = "https://farcaster.xyz/miniapps/lgcZHUGhSVly/writecast"
-    let queryParams = `code=${gameCode.toUpperCase()}`
+    let queryParams = `gameid=${gameCode.toUpperCase()}`
     
     if (sharer) {
       queryParams += `&sharer=${sharer}`

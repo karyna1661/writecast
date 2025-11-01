@@ -99,14 +99,14 @@ Type 'help' to see all commands, or try:
     console.log("Auto-play: Checking URL - href:", currentUrl, "search:", searchParams)
 
     const params = new URLSearchParams(searchParams)
-    const code = params.get('code')
+    const code = params.get('gameid') || params.get('code') // Support both gameid and code for backward compatibility
     
     // Also try parsing from hash if Farcaster uses hash-based routing
     let hashCode = null
     if (window.location.hash) {
       try {
         const hashParams = new URLSearchParams(window.location.hash.replace('#', ''))
-        hashCode = hashParams.get('code')
+        hashCode = hashParams.get('gameid') || hashParams.get('code')
         if (hashCode) {
           console.log("Auto-play: Found code in hash:", hashCode)
         }
@@ -181,7 +181,7 @@ Type 'help' to see all commands, or try:
       console.log("Auto-play: URL changed, re-checking for code parameter")
       // Reset execution flag if URL changed (might be different game)
       const newParams = new URLSearchParams(window.location.search)
-      const newCode = newParams.get('code')
+      const newCode = newParams.get('gameid') || newParams.get('code')
       if (newCode && newCode !== lastProcessedCode.current) {
         autoPlayExecuted.current = false
       }
