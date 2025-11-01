@@ -38,95 +38,135 @@ export function FarcasterProvider({ children }: { children: React.ReactNode }) {
   const [isAvailable, setIsAvailable] = useState(false)
 
   useEffect(() => {
+    // Detect iframe environment early
+    const isInIframe = typeof window !== "undefined" && window.self !== window.top
+    
     console.log("FarcasterContext: Starting initialization")
     console.log("FarcasterContext: User agent:", navigator.userAgent)
     console.log("FarcasterContext: SDK object:", typeof sdk !== "undefined" ? "exists" : "undefined")
-
-    let cleanedUp = false
+    console.log("FarcasterContext: In iframe?", isInIframe)
 
     const initSDK = async () => {
       try {
-        // Single, unified wait for SDK with reasonable timeout
+        // In iframe, use lenient mode and shorter timeout (SDK should be available faster)
+        // In standalone, use longer timeout
+        const timeout = isInIframe ? 8000 : 12000
+        const pollMs = isInIframe ? 100 : 150
+        
+        // Use lenient mode in iframe contexts to allow SDK usage even if bridge detection fails
         const available = await waitForFarcasterSDKReady({ 
-          timeoutMs: 5000, 
-          pollMs: 100, 
-          allowTimeoutResolve: true 
+          timeoutMs: timeout, 
+          pollMs, 
+          allowTimeoutResolve: true,
+          lenient: isInIframe // Enable lenient mode in iframe
         })
-        
-        if (cleanedUp) return
-        
-        console.log("FarcasterContext: SDK available?", available)
+        console.log("FarcasterContext: SDK available?", available, "(iframe:", isInIframe, ")")
         setIsAvailable(available)
 
         if (!available) {
-          console.log("FarcasterContext: SDK not available - running as guest")
-          setAuth(prev => ({ ...prev, isLoading: false }))
+          console.log("FarcasterContext: SDK not available initially - waiting for context before fallback")
+          // Keep loading and poll for context up to 10s so we don't flash guest
+          setAuth(prev => ({ ...prev, isLoading: true }))
+
+          let resolved = false
+          await new Promise<void>((resolve) => {
+            const intervalId = setInterval(async () => {
+              try {
+                if ((sdk as any)?.context) {
+                  const context = await Promise.race([
+                    (sdk as any).context,
+                    new Promise((_, reject) => setTimeout(() => reject(new Error('Context fetch timeout')), 3000))
+                  ])
+                  if (context?.user) {
+                    resolved = true
+                    const user: FarcasterUser = {
+                      fid: context.user.fid,
+                      username: context.user.username || `user-${context.user.fid}`,
+                      displayName: context.user.displayName || context.user.username || `user-${context.user.fid}`,
+          }
+                    setAuth({ isAuthenticated: true, user, token: null, isLoading: false })
+                    clearInterval(intervalId)
+                    clearTimeout(timeoutId)
+                    resolve()
+                  }
+                }
+              } catch {}
+            }, 200)
+            const timeoutId = setTimeout(() => {
+              if (!resolved) {
+                clearInterval(intervalId)
+                resolve()
+              }
+            }, 10000)
+          })
+
+          if (!resolved) {
+            // End loading without forcing guest; UI should avoid guest copy when in Farcaster
+            setAuth(prev => ({ ...prev, isLoading: false }))
+          }
           return
         }
 
-        // SDK is available, fetch context
-        console.log("FarcasterContext: Fetching SDK context...")
-        
-        try {
-          const context = await Promise.race([
-            (sdk as any).context,
-            new Promise((_, reject) => 
-              setTimeout(() => reject(new Error('Context timeout')), 3000)
-            )
-          ])
+        console.log("FarcasterContext: SDK detected - initializing and fetching context")
 
-          if (cleanedUp) return
+        setTimeout(async () => {
+          try {
+            console.log("FarcasterContext: Background SDK initialization...")
+            console.log("FarcasterContext: Attempting to fetch SDK context...")
+            const context = await Promise.race([
+              (sdk as any).context,
+              new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Context fetch timeout')), 5000)
+              )
+            ])
+            console.log("FarcasterContext: SDK context fetched successfully:", context)
 
-          if (context?.user) {
-            const user: FarcasterUser = {
-              fid: context.user.fid,
-              username: context.user.username || `user-${context.user.fid}`,
-              displayName: context.user.displayName || context.user.username || `user-${context.user.fid}`,
+            if (context?.user) {
+              const user: FarcasterUser = {
+                fid: context.user.fid,
+                username: context.user.username || `user-${context.user.fid}`,
+                displayName: context.user.displayName || context.user.username || `user-${context.user.fid}`,
+              }
+
+              setAuth(prev => ({
+                ...prev,
+                isAuthenticated: true,
+                user,
+                token: null,
+                isLoading: false,
+              }))
+              console.log("FarcasterContext: Background authentication successful:", user.username)
             }
+          } catch (error) {
+            console.log("FarcasterContext: Background SDK initialization failed - continuing as guest")
+            console.log("FarcasterContext: Error details:", error)
+            setAuth(prev => ({ ...prev, isLoading: false }))
+          }
+        }, 100)
 
-            console.log("FarcasterContext: User authenticated:", user.username)
-            setAuth({
-              isAuthenticated: true,
-              user,
-              token: null,
-              isLoading: false,
-            })
-          } else {
-            console.log("FarcasterContext: No user in context")
-            setAuth(prev => ({ ...prev, isLoading: false }))
-          }
-        } catch (error) {
-          console.log("FarcasterContext: Context fetch failed:", error)
-          if (!cleanedUp) {
-            setAuth(prev => ({ ...prev, isLoading: false }))
-          }
-        }
       } catch (error) {
         console.error("FarcasterContext: SDK initialization failed:", error)
-        if (!cleanedUp) {
-          setAuth(prev => ({ ...prev, isLoading: false }))
-        }
+        setAuth(prev => ({ ...prev, isLoading: false }))
       }
     }
 
     initSDK()
 
-    // Safety timeout: max 6 seconds total
+    // In iframe, use shorter safety timeout (5s) since SDK should be available faster
+    // In standalone, use longer timeout (10s)
+    const safetyTimeoutMs = isInIframe ? 5000 : 10000
+    
     const safetyTimeout = setTimeout(() => {
-      if (cleanedUp) return
       setAuth(prev => {
         if (prev.isLoading) {
-          console.warn("FarcasterContext: Safety timeout reached")
+          console.warn("FarcasterContext: Safety timeout - ending loading without guest (iframe:", isInIframe, ")")
           return { ...prev, isLoading: false }
         }
         return prev
       })
-    }, 6000)
+    }, safetyTimeoutMs)
 
-    return () => {
-      cleanedUp = true
-      clearTimeout(safetyTimeout)
-    }
+    return () => clearTimeout(safetyTimeout)
   }, [])
 
   const login = async () => {

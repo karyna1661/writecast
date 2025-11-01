@@ -78,34 +78,94 @@ export default function RootLayout({
           {`(function(){
   try {
     var called = false;
-    var maxWaitMs = 5000;
-    var intervalMs = 100;
+    var isInIframe = typeof window !== 'undefined' && window.self !== window.top;
+    var maxWaitMs = isInIframe ? 15000 : 10000;
+    var intervalMs = isInIframe ? 50 : 100;
+    var attempts = 0;
+    var maxAttempts = isInIframe ? 200 : 100;
+
+    console.log('InlineReady: Starting, iframe=' + isInIframe);
 
     function tryReady(){
+      if (called || attempts >= maxAttempts) {
+        return;
+      }
+      attempts++;
+
       try {
+        // Method 1: window.sdk (most common)
         var w = window;
         var s = w.sdk;
-        if (!called && s && s.actions && typeof s.actions.ready === 'function'){
+        if (s && s.actions && typeof s.actions.ready === 'function'){
           called = true;
-          console.log('InlineReady: calling sdk.actions.ready()');
-          Promise.resolve(s.actions.ready()).catch(function(e){
-            console.warn('InlineReady: ready() failed', e);
+          console.log('InlineReady: Found window.sdk, calling ready()');
+          Promise.resolve(s.actions.ready()).then(function(){
+            console.log('InlineReady: ready() completed via window.sdk');
+          }).catch(function(e){
+            console.warn('InlineReady: ready() failed via window.sdk', e);
+            called = false; // Allow retry
           });
-          clearInterval(intervalId);
-          clearTimeout(timeoutId);
+          return;
+        }
+
+        // Method 2: Check for bridge in iframe context
+        if (isInIframe) {
+          var hasBridge = typeof w.MiniApp !== 'undefined' || typeof w.farcaster !== 'undefined';
+          if (hasBridge) {
+            // Try to find SDK in various locations
+            // Sometimes SDK might be on a different object
+            var possibleSDKs = [
+              w.sdk,
+              w.farcaster && w.farcaster.sdk,
+              w.MiniApp && w.MiniApp.sdk,
+              w.__FARCASTER_SDK__,
+              w.FarcasterSDK
+            ];
+
+            for (var i = 0; i < possibleSDKs.length; i++) {
+              var sdk = possibleSDKs[i];
+              if (sdk && sdk.actions && typeof sdk.actions.ready === 'function') {
+                called = true;
+                console.log('InlineReady: Found SDK via bridge detection, calling ready()');
+                Promise.resolve(sdk.actions.ready()).then(function(){
+                  console.log('InlineReady: ready() completed via bridge');
+                }).catch(function(e){
+                  console.warn('InlineReady: ready() failed via bridge', e);
+                  called = false;
+                });
+                return;
+              }
+            }
+
+            // In iframe with bridge, even if we can't find SDK yet,
+            // log that we detected the environment
+            if (attempts === 1) {
+              console.log('InlineReady: Iframe detected with bridge, SDK may load soon');
+            }
+          }
         }
       } catch (e) {
         console.warn('InlineReady: error in tryReady', e);
       }
     }
 
-    // immediate attempt and polling
+    // Immediate attempt
     tryReady();
-    var intervalId = setInterval(tryReady, intervalMs);
-    var timeoutId = setTimeout(function(){
-      if (!called) {
-        console.warn('InlineReady: timeout waiting for sdk');
+
+    var intervalId = setInterval(function(){
+      tryReady();
+      if (called || attempts >= maxAttempts) {
         clearInterval(intervalId);
+        if (!called) {
+          console.warn('InlineReady: timeout after ' + attempts + ' attempts');
+        }
+      }
+    }, intervalMs);
+
+    var timeoutId = setTimeout(function(){
+      clearInterval(intervalId);
+      if (!called) {
+        console.warn('InlineReady: Final timeout after ' + maxWaitMs + 'ms');
       }
     }, maxWaitMs);
 

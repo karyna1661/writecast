@@ -140,11 +140,38 @@ export const farcasterSDK = {
   },
 } as FarcasterSDK
 
-export function isFarcasterAvailable(): boolean {
+// Helper to detect iframe environment
+function isInIframe(): boolean {
+  try {
+    return typeof window !== "undefined" && window.self !== window.top
+  } catch {
+    return false
+  }
+}
+
+export function isFarcasterAvailable(lenient?: boolean): boolean {
   try {
     if (typeof window === "undefined") return false
+    
+    const inIframe = isInIframe()
     const hasBridge = typeof (window as any).MiniApp !== "undefined" || typeof (window as any).farcaster !== "undefined"
     const sdkReadyFn = typeof (sdk as any)?.actions?.ready === "function"
+    const hasSDKImport = typeof sdk !== "undefined"
+    
+    // In iframe with lenient mode: if SDK import exists and ready function exists, consider it available
+    // (bridge might not be detected yet but SDK still works)
+    if (lenient || inIframe) {
+      // If we have SDK import and ready function, we can try calling ready()
+      if (hasSDKImport && sdkReadyFn) {
+        return true
+      }
+      // If we're in iframe and have bridge, even without ready function yet, consider it "maybe available"
+      if (inIframe && hasBridge) {
+        return true
+      }
+    }
+    
+    // Strict mode (default): require both bridge and ready function
     return hasBridge && sdkReadyFn
   } catch (error) {
     console.warn("Error checking Farcaster availability:", error)
@@ -152,38 +179,82 @@ export function isFarcasterAvailable(): boolean {
   }
 }
 
-export async function waitForFarcasterSDKReady(opts?: { timeoutMs?: number; pollMs?: number; allowTimeoutResolve?: boolean }): Promise<boolean> {
+export async function waitForFarcasterSDKReady(opts?: { timeoutMs?: number; pollMs?: number; allowTimeoutResolve?: boolean; lenient?: boolean }): Promise<boolean> {
   const timeoutMs = opts?.timeoutMs ?? 10000
   const pollMs = opts?.pollMs ?? 100
   const allowTimeoutResolve = opts?.allowTimeoutResolve ?? false
+  const lenient = opts?.lenient ?? false
 
   if (typeof window === "undefined") return false
 
   const start = Date.now()
+  const inIframe = isInIframe()
+  
+  // Use lenient mode automatically in iframe contexts
+  const useLenient = lenient || inIframe
 
-  const readyNow = isFarcasterAvailable()
-  if (readyNow) return true
+  // Check immediately with appropriate mode
+  const readyNow = isFarcasterAvailable(useLenient)
+  if (readyNow) {
+    console.log("Farcaster SDK available immediately (iframe:", inIframe, ", lenient:", useLenient, ")")
+    return true
+  }
+
+  // In iframe, if SDK import exists but bridge isn't detected, still try to use it
+  if (inIframe && typeof sdk !== "undefined" && typeof (sdk as any)?.actions?.ready === "function") {
+    console.log("waitForFarcasterSDKReady: In iframe with SDK import, allowing use even without bridge detection")
+    return true
+  }
 
   return new Promise<boolean>((resolve) => {
     let intervalId: any
     let timeoutId: any
 
     const check = () => {
-      const available = isFarcasterAvailable()
+      const available = isFarcasterAvailable(useLenient)
       if (available) {
         clearInterval(intervalId)
         clearTimeout(timeoutId)
-        console.log("Farcaster SDK became available after", Date.now() - start, "ms")
+        console.log("Farcaster SDK became available after", Date.now() - start, "ms (iframe:", inIframe, ")")
         resolve(true)
+        return
+      }
+
+      // In iframe with lenient mode, also check if SDK import + ready function exists
+      // (bridge might never be detected but SDK still works)
+      if (useLenient && typeof sdk !== "undefined") {
+        try {
+          if (typeof (sdk as any)?.actions?.ready === "function") {
+            clearInterval(intervalId)
+            clearTimeout(timeoutId)
+            console.log("Farcaster SDK ready function detected (iframe, lenient mode) after", Date.now() - start, "ms")
+            resolve(true)
+            return
+          }
+        } catch (e) {
+          // Continue polling
+        }
       }
     }
 
     intervalId = setInterval(check, pollMs)
     timeoutId = setTimeout(() => {
       clearInterval(intervalId)
-      const inIframe = typeof window !== "undefined" && window.self !== window.top
-      console.warn("waitForFarcasterSDKReady: timeout after", timeoutMs, "ms", { inIframe, windowKeys: Object.keys(window) })
-      resolve(allowTimeoutResolve ? false : false)
+      console.warn("waitForFarcasterSDKReady: timeout after", timeoutMs, "ms", { 
+        inIframe, 
+        hasSDK: typeof sdk !== "undefined",
+        hasReady: typeof (sdk as any)?.actions?.ready === "function",
+        hasBridge: typeof (window as any).MiniApp !== "undefined" || typeof (window as any).farcaster !== "undefined"
+      })
+      
+      // In iframe with lenient mode, if we have SDK import, still return true
+      // (we can try calling ready() even if bridge detection failed)
+      if (useLenient && typeof sdk !== "undefined" && typeof (sdk as any)?.actions?.ready === "function") {
+        console.log("waitForFarcasterSDKReady: Timeout but SDK ready function exists in iframe, returning true (lenient)")
+        resolve(true)
+      } else {
+        resolve(allowTimeoutResolve ? false : false)
+      }
     }, timeoutMs)
   })
 }
