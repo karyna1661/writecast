@@ -38,8 +38,9 @@ export async function POST(request: NextRequest) {
       // Don't fail the request if recording fails
     }
 
-    // Generate share URL with embed metadata
-    const shareUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"}/api/game/embed/${gameId}?sharer=${userId || 'anonymous'}`
+    // Generate share URL using Farcaster mini app format (so Farcaster shows "Play Now" button)
+    const miniAppBaseUrl = "https://farcaster.xyz/miniapps/lgcZHUGhSVly/writecast"
+    const shareUrl = `${miniAppBaseUrl}?code=${gameId.toUpperCase()}${userId ? `&sharer=${userId}` : ''}`
 
     return NextResponse.json({
       shareUrl,
