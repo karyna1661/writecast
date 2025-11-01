@@ -91,10 +91,10 @@ export async function POST(request: NextRequest) {
       // Don't fail the request if this fails
     }
 
-    // Generate invite URL using Farcaster mini app format (so Farcaster shows "Play Now" button)
-    const miniAppBaseUrl = "https://farcaster.xyz/miniapps/lgcZHUGhSVly/writecast"
+    // Generate invite URL using embed route (so Farcaster can scrape frame meta tags and display frame)
+    // The embed route has frame button with launch_miniapp action pointing to mini app URL
     const inviteeHandle = friendHandle.replace('@', '')
-    const inviteUrl = `${miniAppBaseUrl}?code=${gameId.toUpperCase()}&invitedBy=${inviterUserId}&invitee=${inviteeHandle}`
+    const inviteUrl = `${process.env.NEXT_PUBLIC_APP_URL || "https://writecast-1.vercel.app"}/api/game/embed/${gameId.toUpperCase()}?invitedBy=${inviterUserId}&invitee=${inviteeHandle}`
 
     return NextResponse.json({
       inviteUrl,
